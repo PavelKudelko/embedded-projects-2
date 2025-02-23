@@ -1,0 +1,54 @@
+// Initialization
+InitiateSystem()
+SetupESPCommunication()
+
+// Main loop
+LOOP()
+    // Read LIDAR distance and send data
+    distance = ReadLIDARDistance()
+    SendDataToESPWebpage(distance)
+
+    // Check for warning condition
+    IF distance < 10cm THEN
+        DisplayWarningOnWebpage()
+
+    // Check for commands
+    command = CheckForCommands()
+    IF commandReceived(command) THEN
+        IF command == "EMERGENCY_STOP" THEN
+            StopSystem()
+            CONTINUE
+
+        ELSE IF command == "TURN" THEN
+            IF distance > 10cm THEN
+                ExecuteTurnCommand()
+            ELSE
+                DisplayWarningOnWebpage()
+            ENDIF
+
+        ELSE IF command == "MOVE" THEN
+            ExecuteMoveCommand()
+            // Check obstacle
+            WHILE TRUE DO
+                CheckLIDARDistance()
+                IF ObstacleAhead() THEN
+                    StopMovement()
+                    Rotate90Degrees()
+                    CheckLIDARDistance()
+                    IF Complete360Turn() THEN
+                        StopMovement()
+                        EXIT WHILE
+                    ENDIF
+                ELSE
+                    IF LIDARDistance() > 30cm THEN
+                        SetSpeed(70%)
+                    ELSE
+                        SetSpeed(50%)
+                    ENDIF
+                ENDIF
+            ENDWHILE
+        ENDIF
+    ENDIF
+ENDWHILE
+
+STOP

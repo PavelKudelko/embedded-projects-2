@@ -1,0 +1,14 @@
+Depends on braud. Braud means bits/sec.
+In our case braud = 9600.
+----
+Transmission rate formula:
+Frequency = Braud rate / Bits per transmission
+----
+Braud = 9600
+Data = "LIDAR:123
+	COMPASS:123"
+Convert data to bits (10 bits per char) = 23 chars * 10 = 230 bits
+Frequency = 9600 / 230 = 41.7 (Hz)
+---
+Time for sending one message = Bits per message / Braud.
+T = 230 / 9600 = 0.023 second = 23 millisecond

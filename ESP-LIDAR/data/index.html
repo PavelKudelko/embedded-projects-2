@@ -1,0 +1,37 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Wroom Wroom!</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="icon" href="favicon.ico">
+	<link rel="stylesheet" type="text/css" href="style.css">
+	<script src="script.js" defer></script>	<!-- Defer ensures that page contents load first and JavaScript runs only after that -->
+</head>
+<body>
+	<h1>Motor Control</h1>
+	<div id="warningMessage" class="warning-message">
+        Warning: Obstacle detected! Distance less than 10cm
+    </div>
+	<div class="container">	<!-- This is a box that holds the buttons. -->
+		<button class="button" onclick="forwards5()">FORWARDS<br>5cm</button> <!-- The onclick="forwards5()" tells the page to run the forwards5() function in the JavaScript when the button is clicked -->
+		<button class="button" onclick="forwards20()">FORWARDS<br>20cm</button>
+		<button class="button button2" onclick="backwards5()">BACKWARDS<br>5cm</button>
+		<button class="button button2" onclick="backwards20()">BACKWARDS<br>20cm</button>
+	</div>
+	<h1>Compass Control</h1>
+		<!-- Below is a code row for a slider you can drag left or right.
+		It lets you choose a number between -360 and 360, with steps of 5.
+		When you move the slider, it calls the updateCompass() function,
+		and when you finish pressing and/or moving the mouse button, it calls the sendCompassValue() function.-->
+		<input type="range" min="-360" max="360" step="5" id="compassSlider" oninput="updateCompass(this.value)" onchange="sendCompassValue(this.value)" value="0"/>
+		<div id="compassValue">0°</div>		<!-- This shows the current/last requested compass turning value -->
+
+	<h1>Lidar Data</h1>					<!-- Heading for the LIDAR data section -->
+		<div id="lidarText">0 cm</div>	<!-- Div element to display the LIDAR data, initially set to 0 cm -->
+
+	<h1>Compass value</h1>
+		<div id="compassDisplay">0°</div>
+</div>
+</body>
+</html>

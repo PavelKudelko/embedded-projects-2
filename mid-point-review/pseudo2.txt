@@ -1,0 +1,55 @@
+// Initialize system
+INITIALIZE System
+START Setup_DSP_Communication()
+
+// Main control loop
+WHILE system_running DO
+    READ_UART_Character()
+
+    IF UARTdata received THEN
+        SEND UART Data to CPU_Message_Queue
+
+        // Process UART message
+        IF message == "emergency" THEN
+            EXECUTE Emergency_Stop()
+        ELSE
+            CHECK_for_Commands()
+
+            IF valid_command THEN
+                // Command processing branch
+                IF command_ready THEN
+                    PROCESS Command_Type
+
+                    IF LCVG_command THEN
+                        // LCVG processing branch
+                        SET LCVG_Direction
+                        IF moving_forward THEN
+                            ROTATE_to_degrees()
+                            CHECK_LCVG_Status()
+
+                            IF complete_360_spin THEN
+                                STOP Movement()
+                            ELSE
+                                // LCVG position control
+                                IF LCVG_sequence THEN
+                                    IF set_speed_to_20% THEN
+                                        SET_Speed(20)
+                                        EXECUTE Move_Command()
+                                    ELSE IF set_speed_to_70% THEN
+                                        SET_Speed(70)
+                                        EXECUTE Move_Command()
+                                END IF
+                            END IF
+                        END IF
+                    END IF
+                END IF
+            END IF
+        END IF
+    END IF
+
+    // System stop condition
+    IF stop_signal_received THEN
+        STOP System()
+        EXIT
+    END IF
+END WHILE
