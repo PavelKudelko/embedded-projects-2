@@ -24,5 +24,5 @@ This repository is a continuation of the [Embedded Projects 1 Course](https://gi
 
 ## Previous Work
 This project builds upon the foundation established in the Embedded Projects 1 course. For the initial implementation featuring motor control, joystick navigation, compass-based adjustment, and basic ESP8266 integration, please see:
-[Embedded Projects 1 Repository](https://github.com/PavelKudelko/embedded-projects-1)
+[Embedded Projects 1 Repository](https://github.com/PavelKudelko/embedded_projects1_course)
 
