@@ -9,7 +9,7 @@ String cmpsVal = "0°"; // Store compass value
 bool isWarning = false;
 unsigned long lastWarningTime = 0;
 const unsigned long WARNING_DURATION = 2000;
-String rgbData = "0;0;0"
+String rgbData = "0;0;0";
 
 ESP8266WebServer server(80);    // Create an instance of the WebServer on port 80 (default HTTP port)
 

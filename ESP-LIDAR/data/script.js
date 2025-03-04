@@ -102,11 +102,11 @@ async function fetchRGB() {
   try {
     const response = await fetch('/rgb');
     const data = await response.text();
-    const rgbVal = parseInt(data, 10);
+    //const rgbVal = parseInt(data, 10);
 
-    if (rgbDisplay) rgbDisplay.innerText = `${rgbVal}`;
-    console.log(`${rgbVal}`)
+    if (rgbDisplay) rgbDisplay.innerText = data;
+    console.log(data);
   } catch (error) {
-    console.error('Error fetching RGB data:', error)
+    console.error('Error fetching RGB data:', error);
   }
 }
