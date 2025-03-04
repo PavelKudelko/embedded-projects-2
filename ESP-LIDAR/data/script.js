@@ -1,6 +1,7 @@
 const compassSlider = document.getElementById('compassSlider'); // Get the compass slider element from the HTML page
 const lidarText = document.getElementById('lidarText'); // // Get the LIDAR text element from the HTML page
 const compassDisplay = document.getElementById('compassDisplay');
+const rgbDisplay = document.getElementById('rgbDisplay');
 
 
 // Check if the compassSlider element exists and reset it to 0
@@ -14,6 +15,7 @@ if (compassSlider) {
 setInterval(fetchLidarData, 500); // Fetch LIDAR data every half second
 setInterval(fetchCompassData, 500); // fetch cmpsVal every 0.5 second'
 setInterval(fetchWarning, 300);
+setInterval(fetchRGB, 200);
 
 
 async function fetchWarning() {
@@ -93,5 +95,18 @@ async function fetchCompassData() {
     console.log(`${compassVal} degree`)
   } catch (error) {
     console.error('Error fetching COMPASS data:', error)
+  }
+}
+
+async function fetchRGB() {
+  try {
+    const response = await fetch('/rgb');
+    const data = await response.text();
+    const rgbVal = parseInt(data, 10);
+
+    if (rgbDisplay) rgbDisplay.innerText = `${rgbVal}`;
+    console.log(`${rgbVal}`)
+  } catch (error) {
+    console.error('Error fetching RGB data:', error)
   }
 }
