@@ -255,8 +255,8 @@ void handleSerialControl() {
   if (Serial.available() > 0) {
     // Read the incoming message
     String message = Serial.readStringUntil('\n');
-    Serial.print("Message received, content: ");
-    Serial.println(message);
+    //Serial.print("Message received, content: ");
+    //Serial.println(message);
 
     int pos_drive_dist = message.indexOf("Move");
     int pos_turn = message.indexOf("Turn");

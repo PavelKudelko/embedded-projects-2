@@ -2,8 +2,8 @@
 #include <ESP8266WebServer.h>   // Library to create and manage a web server
 #include <FS.h>                 // Library for working with file systems (SPIFFS)
 
-const char* ssid = "SOURCE";        // Wi-Fi network name (SSID)
-const char* password = "Pelle!23";  // Wi-Fi network password
+const char* ssid = "buterbrodskyi";        // Wi-Fi network name (SSID)
+const char* password = "12345678";  // Wi-Fi network password
 String lidarData = "0 cm";          // Variable to store LIDAR data
 String cmpsVal = "0°"; // Store compass value
 bool isWarning = false;

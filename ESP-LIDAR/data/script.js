@@ -17,6 +17,53 @@ setInterval(fetchCompassData, 500); // fetch cmpsVal every 0.5 second'
 setInterval(fetchWarning, 300);
 setInterval(fetchRGB, 200);
 
+// Function to update the color display based on which RGB component is dominant
+function updateColorDisplay(rgbString) {
+  // Parse the RGB string (format: "r;g;b")
+  const rgbValues = rgbString.split(';');
+  if (rgbValues.length === 3) {
+    const r = parseInt(rgbValues[0]);
+    const g = parseInt(rgbValues[1]);
+    const b = parseInt(rgbValues[2]);
+
+    const colorDisplay = document.getElementById('colorDisplay');
+    const colorText = document.getElementById('colorText');
+
+    // Determine dominant color or special cases
+    let dominantColor = "Black";
+    let backgroundColor = "rgb(0, 0, 0)";
+
+    const max = Math.max(r, g, b);
+
+    if (max === r) {
+      dominantColor = "Red";
+      backgroundColor = "rgb(255, 0, 0)";
+    } else if (max === g) {
+      dominantColor = "Green";
+      backgroundColor = "rgb(0, 255, 0)";
+    } else if (max === b) {
+      dominantColor = "Blue";
+      backgroundColor = "rgb(0, 0, 255)";
+    }
+
+    // Update the display
+    colorDisplay.style.backgroundColor = backgroundColor;
+    colorText.innerText = "Detected: " + dominantColor;
+  }
+}
+
+// Add this to your existing code where you update the RGB display
+// For example, if you have:
+// document.getElementById('rgbDisplay').innerText = rgbData;
+// Add this after:
+// updateColorDisplay(rgbData);
+
+// For testing purposes, you can also parse the existing RGB text when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+  const rgbText = document.getElementById('rgbDisplay').innerText;
+  updateColorDisplay(rgbText);
+});
+
 
 async function fetchWarning() {
     try {
@@ -102,10 +149,17 @@ async function fetchRGB() {
   try {
     const response = await fetch('/rgb');
     const data = await response.text();
-    //const rgbVal = parseInt(data, 10);
 
-    if (rgbDisplay) rgbDisplay.innerText = data;
-    console.log(data);
+    console.log("Raw RGB data:", data);
+
+    if (rgbDisplay) {
+      rgbDisplay.innerText = data;
+      updateColorDisplay(data);
+
+      // Debug what values are being parsed
+      const values = data.split(';');
+      console.log("R:", values[0], "G:", values[1], "B:", values[2]);
+    }
   } catch (error) {
     console.error('Error fetching RGB data:', error);
   }

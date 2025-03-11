@@ -1,92 +1,123 @@
 html {
-  font-family: Helvetica;	/* The text will be in a nice, clean font called Helvetica */
-  display: flex;			/* We make everything flexible, like stretching playdough */
-  justify-content: left;	/* All the stuff inside will be pushed to the left side */
-  height: 100vh;			/* The page will be as tall as your whole screen */
-  margin: 0;				/* No extra space around the page’s edges */
-  text-align: center;		/* All the words inside will be in the middle */
-  box-sizing: border-box;	/* We include the border in the size, like wrapping a gift tightly */
+  font-family: Arial, sans-serif;
+  background: linear-gradient(to right, #0f2027, #203a43, #2c5364);
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  text-align: center;
+}
+
+h1 {
+  color: #ffcc00;
 }
 
 .container {
-  display: flex;			/* The container inside will also stretch, like playdough */
-  flex-wrap: wrap;			/* If there's too much inside, it will wrap onto the next line */
-  justify-content: center;	/* Everything inside will be centered */
-  gap: 15px;				/* Leave a little space between the buttons */
-  max-width: 400px;			/* The container will not get too wide, like a small box */
-  margin-top: 20px;			/* Move the container down a little from the top */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 15px;
+  max-width: 500px;
+  margin: 20px;
 }
 
 .button {
-  user-select: none;		/* You can't accidentally select the button with your mouse */
-  background-color: #46ff46;/* The button will be green */
-  border: none;				/* No border around the button */
-  color: #555555;			/* The text on the button will be dark grey */
-  padding: 12px 28px;		/* The button will have some space inside, like a pillow */
-  font-size: 24px;			/* The words on the button will be big and easy to read */
-  cursor: pointer;			/* The mouse pointer will turn into a hand when you hover over it */
-  width: 190px;				/* The button will be a specific width */
-  height: 100px;			/* The button will be a certain height, like a big rectangle */
-  display: flex;			/* The button will stretch like playdough again */
-  align-items: center;		/* The words will be centered inside the button */
-  justify-content: center;	/* The words will be in the middle of the button */
-  text-align: center;		/* The text inside the button will be centered */
-  border-radius: 5px;		/* The corners of the button will be rounded, not sharp */
+  user-select: none;
+  background: linear-gradient(45deg, #4CAF50, #2E8B57);
+  border: none;
+  color: white;
+  padding: 15px 30px;
+  font-size: 20px;
+  cursor: pointer;
+  width: 200px;
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 10px;
+  transition: transform 0.2s, background 0.3s;
+}
+
+.button:hover {
+  background: linear-gradient(45deg, #45a049, #3e8e41);
+  transform: scale(1.05);
 }
 
 .button2 {
-  background-color: #555555;/* This button will have a dark grey color */
-  color: #46ff46;			/* The text will be bright green */
+  background: linear-gradient(45deg, #555555, #333333);
 }
 
 #compassSlider {
-  width: 100%;				/* The slider will stretch across the whole screen */
-  height: 15px;				/* The slider will be nice and tall */
-  display: flex;			/* The slider will stretch like playdough */
-  justify-content: center;	/* Center the slider on the screen */
+  width: 100%;
+  height: 20px;
+  appearance: none;
+  background: #333;
+  border-radius: 10px;
+  outline: none;
+  cursor: pointer;
+  transition: background 0.3s;
 }
 
-#compassSlider::-webkit-slider-runnable-track, #compassSlider::-moz-range-track {
-  width: 98%;				/* The track will be almost as wide as the slider */
-  height: 5px;				/* The track will be thin, like a pencil line */
-  cursor: pointer;			/* You can click and drag the slider */
-  background: #ebebeb;		/* The track will be a light grey color */
-  border: 1px solid #555555;/* The track will have a little dark border */
-  border-radius: 5px;		/* The edges of the track will be rounded */
+#compassSlider:hover {
+  background: #444;
 }
 
-#compassSlider::-webkit-slider-thumb, #compassSlider::-moz-range-thumb {
-  border: 2px solid #555555;/* The circle you drag will have a dark border */
-  height: 20px;				/* The circle you drag will be 20px tall */
-  width: 20px;				/* The circle will be 20px wide */
-  border-radius: 50%;		/* The circle will be round, like a ball */
-  background: #46ff46;		/* The circle will be bright green */
-  cursor: pointer;			/* You can click and drag the circle */
-  margin-top: -1px;			/* Move the circle up slightly so it fits on the track */
+#compassSlider::-webkit-slider-thumb {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  background: #ff7eb3;
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0px 0px 5px rgba(255, 126, 179, 0.5);
 }
 
-#compassValue {
-  font-size: 1.5em;			/* The font size showing the compass value will be big-ish */
-  margin-top: 10px;			/* Leave some space above the number */
-  margin-left: 5px;			/* Leave a tiny bit of space on the left of the number */
-  width: 100%;				/* The box for the number will be as wide as the whole screen */
-  text-align: center;		/* The number will be in the middle */
+#compassSlider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  background: #ff7eb3;
+  border-radius: 50%;
+  cursor: pointer;
 }
 
 .warning-message {
-  display: none;  /* Hidden by default */
-  background-color: #ffebee;
-  color: #c62828;
+  display: none;
+  background-color: #ff0000;
+  color: white;
   padding: 15px;
   border-radius: 5px;
   margin: 10px 0;
-  border: 1px solid #ef9a9a;
   font-weight: bold;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.color-display-container {
+  margin: 20px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
-.warning-message {
-  display: none;
-  opacity: 0;
-  transition: opacity 0.3s ease-in-out;
-  /* rest of your existing warning styles */
+
+#colorDisplay {
+  width: 100px;
+  height: 100px;
+  border: 2px solid #fff;
+  box-shadow: 0 4px 8px rgba(255,255,255,0.3);
+  border-radius: 10px;
+  margin-bottom: 10px;
+}
+
+#colorText {
+  font-weight: bold;
+  font-size: 1.2em;
 }
