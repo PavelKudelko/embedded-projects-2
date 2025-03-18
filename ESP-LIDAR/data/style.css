@@ -50,6 +50,11 @@ h1 {
   background: linear-gradient(45deg, #555555, #333333);
 }
 
+.button3 {
+  background: linear-gradient(45deg, #b46565, #e41515);
+  margin: 20px auto;
+}
+
 #compassSlider {
   width: 100%;
   height: 20px;

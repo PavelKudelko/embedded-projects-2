@@ -91,6 +91,11 @@ async function fetchWarning() {
     }
 }
 
+function logout() {
+  fetch('/logout');
+  console.log("logout");
+}
+
 // Function to update the compass display (show the current compass position)
 function updateCompass(pos) {
 	document.getElementById('compassValue').innerText = `${pos}°`;// Update the text value for compassValue when value is changing on page element with the current position and add "°" for degrees

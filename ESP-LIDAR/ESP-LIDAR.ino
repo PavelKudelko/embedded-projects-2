@@ -2,9 +2,13 @@
 #include <ESP8266WebServer.h>   // Library to create and manage a web server
 #include <FS.h>                 // Library for working with file systems (SPIFFS)
 
-const char* ssid = "buterbrodskyi";        // Wi-Fi network name (SSID)
-const char* password = "12345678";  // Wi-Fi network password
-String lidarData = "0 cm";          // Variable to store LIDAR data
+const char* ssid = "Titenet-IoT";        // Wi-Fi network name (SSID)
+const char* password = "7kDtaphg";  // Wi-Fi network password
+
+const String HTTP_USERNAME = "FastCar";
+const String HTTP_PASSWORD = "esp8266";
+
+String lidarData = "0 cm";
 String cmpsVal = "0°"; // Store compass value
 bool isWarning = false;
 unsigned long lastWarningTime = 0;
@@ -13,6 +17,16 @@ String rgbData = "0;0;0";
 
 ESP8266WebServer server(80);    // Create an instance of the WebServer on port 80 (default HTTP port)
 
+volatile bool isAuthenticated = false;
+
+bool handleAuth() {
+  if (!server.authenticate(HTTP_USERNAME.c_str(), HTTP_PASSWORD.c_str())) {
+    server.requestAuthentication(DIGEST_AUTH, "Access Denied", "Authentication failed");
+    return false;
+  }
+  isAuthenticated = true;
+  return true;
+}
 
 void setup() {
   Serial.begin(9600);
@@ -31,9 +45,15 @@ void setup() {
     Serial.print(".");
   } Serial.println("\nIP address: " + WiFi.localIP().toString()); // Print the IP address of the ESP8266 when connected
 
-
   // Set up the web pages (URLS) and files that the server will show/use when someone visits the site
-  server.serveStatic("/", SPIFFS, "/index.html");             // Serves and shows the main webpage (HTML file) when someone visits the home page
+  server.on("/", HTTP_GET, []() {
+    if (!handleAuth()) {
+      return;
+    }
+    File file = SPIFFS.open("/index.html", "r");
+    server.streamFile(file, "text/html");
+    file.close();
+  });             // Serves and shows the main webpage (HTML file) when someone visits the home page
   server.serveStatic("/style.css", SPIFFS, "/style.css");     // Serve the CSS file for styling
   server.serveStatic("/script.js", SPIFFS, "/script.js");     // Serve the JavaScript file
   server.serveStatic("/favicon.ico", SPIFFS, "/favicon.png"); // Serve a favicon (small icon) for the website
@@ -51,6 +71,7 @@ void setup() {
 //  server.on("/cantmove", handleCantMove);
 //  server.on("/stop", handleStop);
   server.on("/rgb", handleRGB);
+  server.on("/logout", handlelogout);
 
   //  If someone tries to access a URL that does not exist (e.g. due to a typo), call the handleNotFound function
   server.onNotFound(handleNotFound);
@@ -96,7 +117,11 @@ void loop() {
   }
 }
 
-
+void handlelogout() {
+    isAuthenticated = false;
+    server.sendHeader("Location", "/", true);  // Force redirect to login
+    server.send(302, "text/plain", "Redirecting to login...");
+}
 // This function is called when a non-existing URL is accessed (404 error)
 void handleNotFound() {
   server.send(404, "text/plain", "404: Not Found"); // Send a 404 response with a plain text message
