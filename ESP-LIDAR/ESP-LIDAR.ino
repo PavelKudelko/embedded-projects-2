@@ -161,9 +161,15 @@ void loop() {
 
 void handlelogout() {
     isAuthenticated = false;
-    server.sendHeader("Location", "/", true);  // Force redirect to login
-    server.send(302, "text/plain", "Redirecting to login...");
+    // Clear authentication and force browser to forget credentials
+    server.sendHeader("WWW-Authenticate", "Basic realm=\"Login Required\"");
+    
+    // Serve the logout page
+    File file = SPIFFS.open("/logout.html", "r");
+    server.streamFile(file, "text/html");
+    file.close();
 }
+
 // This function is called when a non-existing URL is accessed (404 error)
 void handleNotFound() {
   server.send(404, "text/plain", "404: Not Found"); // Send a 404 response with a plain text message
