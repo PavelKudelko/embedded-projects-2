@@ -1,188 +1,224 @@
-const compassSlider = document.getElementById('compassSlider'); // Get the compass slider element from the HTML page
-const lidarText = document.getElementById('lidarText'); // // Get the LIDAR text element from the HTML page
+// DOM Element References
+const compassSlider = document.getElementById('compassSlider');
+const lidarText = document.getElementById('lidarText');
 const compassDisplay = document.getElementById('compassDisplay');
 const rgbDisplay = document.getElementById('rgbDisplay');
 
+// Improved logout function
+function logout() {
+    fetch('/logout', {
+        method: 'GET',
+        credentials: 'include'
+    })
+    .then(response => {
+        if (response.status === 401) {
+            // Clear any stored credentials
+            localStorage.removeItem('credentials');
 
-// Check if the compassSlider element exists and reset it to 0
-if (compassSlider) {
-	const middleValue = 0;
-	compassSlider.value = middleValue;	// Set slider to the middle position (0 degrees)
-	updateCompass(middleValue);			// Set the compass value to initial value of 0
+            // Redirect to logout page
+            window.location.href = '/logged-out';
+        } else {
+            // Fallback redirect
+            window.location.href = '/logged-out';
+        }
+    })
+    .catch(error => {
+        console.error('Logout error:', error);
+        window.location.href = '/logged-out';
+    });
 }
 
+// Function to send authenticated requests
+async function fetchWithAuth(url, options = {}) {
+    // Use Basic Authentication
+    const authHeader = 'Basic ' + btoa('username:pwd');
 
-setInterval(fetchLidarData, 500); // Fetch LIDAR data every half second
-setInterval(fetchCompassData, 500); // fetch cmpsVal every 0.5 second'
+    const defaultOptions = {
+        headers: {
+            'Authorization': authHeader
+        },
+        credentials: 'include'
+    };
+
+    // Merge default options with any passed options
+    const mergedOptions = { ...defaultOptions, ...options };
+
+    try {
+        const response = await fetch(url, mergedOptions);
+
+        if (response.status === 401) {
+            // Unauthorized - clear any stored credentials and redirect
+            localStorage.removeItem('credentials');
+            window.location.href = "/logout";
+            return null;
+        }
+
+        return response;
+    } catch (error) {
+        console.error('Fetch error:', error);
+        alert('Network error. Please try again.');
+        return null;
+    }
+}
+
+// Reset compass slider to middle
+if (compassSlider) {
+    const middleValue = 0;
+    compassSlider.value = middleValue;
+    updateCompass(middleValue);
+}
+
+// Periodic data fetching
+setInterval(fetchLidarData, 500);
+setInterval(fetchCompassData, 500);
 setInterval(fetchWarning, 300);
 setInterval(fetchRGB, 200);
 
-// Function to update the color display based on which RGB component is dominant
+// Color display update function
 function updateColorDisplay(rgbString) {
-  // Parse the RGB string (format: "r;g;b")
-  const rgbValues = rgbString.split(';');
-  if (rgbValues.length === 3) {
-    const r = parseInt(rgbValues[0]);
-    const g = parseInt(rgbValues[1]);
-    const b = parseInt(rgbValues[2]);
+    const rgbValues = rgbString.split(';');
+    if (rgbValues.length === 3) {
+        const r = parseInt(rgbValues[0]);
+        const g = parseInt(rgbValues[1]);
+        const b = parseInt(rgbValues[2]);
 
-    const colorDisplay = document.getElementById('colorDisplay');
-    const colorText = document.getElementById('colorText');
+        const colorDisplay = document.getElementById('colorDisplay');
+        const colorText = document.getElementById('colorText');
 
-    // Determine dominant color or special cases
-    let dominantColor = "Black";
-    let backgroundColor = "rgb(0, 0, 0)";
+        let dominantColor = "Black";
+        let backgroundColor = "rgb(0, 0, 0)";
 
-    const max = Math.max(r, g, b);
+        const max = Math.max(r, g, b);
 
-    if (max === r) {
-      dominantColor = "Red";
-      backgroundColor = "rgb(255, 0, 0)";
-    } else if (max === g) {
-      dominantColor = "Green";
-      backgroundColor = "rgb(0, 255, 0)";
-    } else if (max === b) {
-      dominantColor = "Blue";
-      backgroundColor = "rgb(0, 0, 255)";
+        if (max === r) {
+            dominantColor = "Red";
+            backgroundColor = "rgb(255, 0, 0)";
+        } else if (max === g) {
+            dominantColor = "Green";
+            backgroundColor = "rgb(0, 255, 0)";
+        } else if (max === b) {
+            dominantColor = "Blue";
+            backgroundColor = "rgb(0, 0, 255)";
+        }
+
+        colorDisplay.style.backgroundColor = backgroundColor;
+        colorText.innerText = "Detected: " + dominantColor;
     }
-
-    // Update the display
-    colorDisplay.style.backgroundColor = backgroundColor;
-    colorText.innerText = "Detected: " + dominantColor;
-  }
 }
 
-// Add this to your existing code where you update the RGB display
-// For example, if you have:
-// document.getElementById('rgbDisplay').innerText = rgbData;
-// Add this after:
-// updateColorDisplay(rgbData);
-
-// For testing purposes, you can also parse the existing RGB text when the page loads
-document.addEventListener('DOMContentLoaded', function() {
-  const rgbText = document.getElementById('rgbDisplay').innerText;
-  updateColorDisplay(rgbText);
-});
-
-
+// Fetch and display warning status
 async function fetchWarning() {
     try {
-        const response = await fetch('/warning');
-        const data = await response.text();
+        const response = await fetchWithAuth('/warning');
+        if (!response) return;
 
+        const data = await response.text();
         const warningElement = document.getElementById('warningMessage');
 
         if (data.trim() === 'true') {
-            // Add fade-in effect
             warningElement.style.opacity = '0';
             warningElement.style.display = 'block';
             setTimeout(() => {
                 warningElement.style.opacity = '1';
             }, 10);
         } else {
-            // Add fade-out effect
             warningElement.style.opacity = '0';
             setTimeout(() => {
                 warningElement.style.display = 'none';
-            }, 300); // Wait for fade out to complete
+            }, 300);
         }
     } catch (error) {
         console.error('error fetching warning: ', error);
     }
 }
 
-function logout() {
-  fetch('/logout', {
-      method: 'GET',
-      credentials: 'include'  // Important for handling authentication
-  })
-  .then(response => {
-      // Check if response is a redirect
-      if (response.redirected) {
-          // If redirected, manually navigate to the new location
-          window.location.href = response.url;
-      } else {
-          // Fallback redirect to logout page
-          window.location.href = '/logout_page';
-      }
-  })
-  .catch(error => {
-      console.error('Logout error:', error);
-      // Fallback redirect in case of any error
-      window.location.href = '/logout_page';
-  });
-}
+// Optional: Add an event listener for authentication failures
+window.addEventListener('load', () => {
+    window.addEventListener('error', (event) => {
+        if (event.target.status === 401) {
+            window.location.href = '/logout';
+        }
+    }, true);
+});
 
-// Function to update the compass display (show the current compass position)
+// Update compass display
 function updateCompass(pos) {
-	document.getElementById('compassValue').innerText = `${pos}°`;// Update the text value for compassValue when value is changing on page element with the current position and add "°" for degrees
+    document.getElementById('compassValue').innerText = `${pos}°`;
 }
 
-
-// Function to send the current compass value to the server
+// Send compass value to server
 function sendCompassValue(pos) {
-	fetch(`/compass?value=${pos}`);		// Send the compass value to the server using a fetch request
-	console.log("Compass value", pos);	// Log the compass value to the console for debugging
+    fetchWithAuth(`/compass?value=${pos}`);
+    console.log("Compass value", pos);
 }
 
+// Movement functions
+function forwards5() { move('forwards', 5); }
+function forwards20() { move('forwards', 20); }
+function backwards5() { move('backwards', 5); }
+function backwards20() { move('backwards', 20); }
 
-// Functions for moving the motor forward and backward with specific distances
-function forwards5() { move('forwards', 5); } 		// Calling move function with separated parameters
-function forwards20() { move('forwards', 20); }		// Calling move function with separated parameters
-function backwards5() { move('backwards', 5); }		// Calling move function with separated parameters
-function backwards20() { move('backwards', 20); }	// Calling move function with separated parameters
-
-
-// This is a general-purpose function that can handle different combinations of direction and distance
+// General movement function
 function move(dir, dis) {
-	fetch(`/${dir}${dis}`);			// Sends a request to the server with a URL constructed from the received direction and distance (e.g., /forwards5)
-	console.log("Drive", dir, dis);	// Log the movement command to the console for debugging
+    fetchWithAuth(`/${dir}${dis}`);
+    console.log("Drive", dir, dis);
 }
 
-
-// This function fetches asynchronously LIDAR data from the server and updates the display.
+// Fetch LIDAR data
 async function fetchLidarData() {
-  try {
-    const response = await fetch('/lidar');		// Fetch the LIDAR data from the server
-    const data = await response.text();			// Get the response text
-    const lidarValue = parseInt(data, 10); 		// Parse the LIDAR data as an integer
+    try {
+        const response = await fetchWithAuth('/lidar');
+        if (!response) return;
 
-    if (lidarText) lidarText.innerText = `${lidarValue} cm`;	// Update the LIDAR text element with the fetched data
-    console.log(`${lidarValue} cm`);
-  } catch (error) {
-    console.error('Error fetching LIDAR data:', error);		 	// Log any errors to the console
-  }
-}
+        const data = await response.text();
+        const lidarValue = parseInt(data, 10);
 
-async function fetchCompassData() {
-  try {
-    const response = await fetch('/compass_value');
-    const data = await response.text();
-    const compassVal = parseInt(data, 10);
-
-    if (compassDisplay) compassDisplay.innerText = `${compassVal}`;
-    console.log(`${compassVal} degree`)
-  } catch (error) {
-    console.error('Error fetching COMPASS data:', error)
-  }
-}
-
-async function fetchRGB() {
-  try {
-    const response = await fetch('/rgb');
-    const data = await response.text();
-
-    console.log("Raw RGB data:", data);
-
-    if (rgbDisplay) {
-      rgbDisplay.innerText = data;
-      updateColorDisplay(data);
-
-      // Debug what values are being parsed
-      const values = data.split(';');
-      console.log("R:", values[0], "G:", values[1], "B:", values[2]);
+        if (lidarText) lidarText.innerText = `${lidarValue} cm`;
+        console.log(`${lidarValue} cm`);
+    } catch (error) {
+        console.error('Error fetching LIDAR data:', error);
     }
-  } catch (error) {
-    console.error('Error fetching RGB data:', error);
-  }
 }
+
+// Fetch compass data
+async function fetchCompassData() {
+    try {
+        const response = await fetchWithAuth('/compass_value');
+        if (!response) return;
+
+        const data = await response.text();
+        const compassVal = parseInt(data, 10);
+
+        if (compassDisplay) compassDisplay.innerText = `${compassVal}`;
+        console.log(`${compassVal} degree`);
+    } catch (error) {
+        console.error('Error fetching COMPASS data:', error);
+    }
+}
+
+// Fetch RGB data
+async function fetchRGB() {
+    try {
+        const response = await fetchWithAuth('/rgb');
+        if (!response) return;
+
+        const data = await response.text();
+        console.log("Raw RGB data:", data);
+
+        if (rgbDisplay) {
+            rgbDisplay.innerText = data;
+            updateColorDisplay(data);
+
+            const values = data.split(';');
+            console.log("R:", values[0], "G:", values[1], "B:", values[2]);
+        }
+    } catch (error) {
+        console.error('Error fetching RGB data:', error);
+    }
+}
+
+// Initial color display update when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const rgbText = document.getElementById('rgbDisplay').innerText;
+    updateColorDisplay(rgbText);
+});
