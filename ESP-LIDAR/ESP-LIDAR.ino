@@ -21,7 +21,7 @@ volatile bool isAuthenticated = false;
 
 bool handleAuth() {
   if (!server.authenticate(HTTP_USERNAME.c_str(), HTTP_PASSWORD.c_str())) {
-    server.requestAuthentication(DIGEST_AUTH, "Access Denied", "Authentication failed");
+    server.requestAuthentication(BASIC_AUTH, "Login Required", "Please enter your credentials");
     return false;
   }
   isAuthenticated = true;
@@ -45,37 +45,87 @@ void setup() {
     Serial.print(".");
   } Serial.println("\nIP address: " + WiFi.localIP().toString()); // Print the IP address of the ESP8266 when connected
 
-  // Set up the web pages (URLS) and files that the server will show/use when someone visits the site
+  // Set up the web pages with authentication
   server.on("/", HTTP_GET, []() {
-    if (!handleAuth()) {
-      return;
-    }
+    if (!handleAuth()) return;
     File file = SPIFFS.open("/index.html", "r");
     server.streamFile(file, "text/html");
     file.close();
   });             // Serves and shows the main webpage (HTML file) when someone visits the home page
-  server.serveStatic("/style.css", SPIFFS, "/style.css");     // Serve the CSS file for styling
-  server.serveStatic("/script.js", SPIFFS, "/script.js");     // Serve the JavaScript file
-  server.serveStatic("/favicon.ico", SPIFFS, "/favicon.png"); // Serve a favicon (small icon) for the website
 
+  // Static files with authentication
+  server.on("/style.css", HTTP_GET, []() {
+    if (!handleAuth()) return;
+    File file = SPIFFS.open("/style.css", "r");
+    server.streamFile(file, "text/css");
+    file.close();
+  });     // Serve the CSS file for styling
+  server.on("/script.js", HTTP_GET, []() {
+    if (!handleAuth()) return;
+    File file = SPIFFS.open("/script.js", "r");
+    server.streamFile(file, "text/javascript");
+    file.close();
+  });     // Serve the JavaScript file
+  server.on("/favicon.ico", HTTP_GET, []() {
+    if (!handleAuth()) return;
+    File file = SPIFFS.open("/favicon.png", "r");
+    server.streamFile(file, "image/png");
+    file.close();
+  }); // Serve a favicon (small icon) for the website
 
-  // Define custom actions/function calls for specific URLs (ie when a button press from webpage requests a particular URL)
-  server.on("/forwards5", [](){ handleMove(5); });      // When requesting URL "/forwards5", call the handleMove function with parameter 5
-  server.on("/forwards20", [](){ handleMove(20); });    // [](){ handleMove(x); } is a lambda function that contains the code
-  server.on("/backwards5", [](){ handleMove(-5); });    // to be executed when the route is visited. These lambda functions call
-  server.on("/backwards20", [](){ handleMove(-20); });  // handleMove(x) as soon as it's triggered.
-  server.on("/compass", handleCompass);                 // When requesting URL "/compass", call the handleCompass function
-  server.on("/lidar", handleLidar);                     // When requesting URL "/lidar", call the handleLidar function.
-  server.on("/compass_value", handleCompassValue); // compass value
-  server.on("/warning", handleWarning);
-//  server.on("/cantmove", handleCantMove);
-//  server.on("/stop", handleStop);
-  server.on("/rgb", handleRGB);
-  server.on("/logout", handlelogout);
+  // Logout page route
+  server.on("/logout_page", HTTP_GET, []() {
+    File file = SPIFFS.open("/logout.html", "r");
+    server.streamFile(file, "text/html");
+    file.close();
+    isAuthenticated = false; // Reset authentication
+  });
 
+  // Define custom actions/function calls for specific URLs
+  server.on("/forwards5", [](){ 
+    if (!handleAuth()) return;
+    handleMove(5); 
+  });      
+  server.on("/forwards20", [](){ 
+    if (!handleAuth()) return;
+    handleMove(20); 
+  });    
+  server.on("/backwards5", [](){ 
+    if (!handleAuth()) return;
+    handleMove(-5); 
+  });    
+  server.on("/backwards20", [](){ 
+    if (!handleAuth()) return;
+    handleMove(-20); 
+  });  
+  server.on("/compass", [](){ 
+    if (!handleAuth()) return;
+    handleCompass(); 
+  });                 
+  server.on("/lidar", [](){ 
+    if (!handleAuth()) return;
+    handleLidar(); 
+  });                     
+  server.on("/compass_value", [](){ 
+    if (!handleAuth()) return;
+    handleCompassValue(); 
+  }); 
+  server.on("/warning", [](){ 
+    if (!handleAuth()) return;
+    handleWarning(); 
+  });
+  server.on("/rgb", [](){ 
+    if (!handleAuth()) return;
+    handleRGB(); 
+  });
+  
+  server.on("/logout", []() {
+      isAuthenticated = false;
+      server.sendHeader("Location", "/logout_page", true);
+      server.send(302, "text/plain", "");  // Empty body for clean redirect
+  });
   //  If someone tries to access a URL that does not exist (e.g. due to a typo), call the handleNotFound function
   server.onNotFound(handleNotFound);
-
 
   // Start the web server
   server.begin();
@@ -118,10 +168,17 @@ void loop() {
 }
 
 void handlelogout() {
-    isAuthenticated = false;
-    server.sendHeader("Location", "/", true);  // Force redirect to login
-    server.send(302, "text/plain", "Redirecting to login...");
+  Serial.println("entered logout");
+  isAuthenticated = false;
+  // Clear authentication and force browser to forget credentials
+  // server.sendHeader("WWW-Authenticate", "Basic realm=\"Login Required\"");
+  
+  // Serve the logout page
+  File file = SPIFFS.open("/logout.html", "r");
+  server.streamFile(file, "text/html");
+  file.close();
 }
+
 // This function is called when a non-existing URL is accessed (404 error)
 void handleNotFound() {
   server.send(404, "text/plain", "404: Not Found"); // Send a 404 response with a plain text message

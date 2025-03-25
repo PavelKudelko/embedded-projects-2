@@ -92,8 +92,25 @@ async function fetchWarning() {
 }
 
 function logout() {
-  fetch('/logout');
-  console.log("logout");
+  fetch('/logout', {
+      method: 'GET',
+      credentials: 'include'  // Important for handling authentication
+  })
+  .then(response => {
+      // Check if response is a redirect
+      if (response.redirected) {
+          // If redirected, manually navigate to the new location
+          window.location.href = response.url;
+      } else {
+          // Fallback redirect to logout page
+          window.location.href = '/logout_page';
+      }
+  })
+  .catch(error => {
+      console.error('Logout error:', error);
+      // Fallback redirect in case of any error
+      window.location.href = '/logout_page';
+  });
 }
 
 // Function to update the compass display (show the current compass position)
