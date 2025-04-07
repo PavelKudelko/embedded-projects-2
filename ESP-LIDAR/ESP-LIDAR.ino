@@ -129,7 +129,19 @@ void setup() {
       return server.requestAuthentication();
     }
     handleMove(-20); 
-  });  
+  }); 
+  server.on("/Drive50", []() { 
+    if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
+      return server.requestAuthentication();
+    }
+    handleMove(50); 
+  });   
+  server.on("/DriveGoal", []() { 
+    if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
+      return server.requestAuthentication();
+    }
+    handleDriveGoal(); 
+  });   
 
   // Other routes with authentication
   server.on("/compass", []() { 
@@ -248,3 +260,9 @@ void handleWarning() {
 void handleRGB() {
   server.send(200, "text/plain", rgbData);
 }
+
+void  handleDriveGoal() {
+  Serial.println("DriveGoal");
+  server.send(200);
+}
+
