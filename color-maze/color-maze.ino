@@ -151,7 +151,7 @@ void setup() {
   Wire.begin();
   // Compass calibration
   calibrateCompass();
-  Serial.begin(115200);
+  //Serial.begin(115200);
   Serial.println("Color View Test!");
 
   if (tcs.begin()) {
@@ -609,7 +609,7 @@ void driveGoalDist(int dist) {
     //delay for stability
     // delay(20);
 
-    drive(40, true);
+    drive(30, true);
     //detectColors();
 
   }
@@ -677,13 +677,13 @@ void driveGoal() {
 
     if (getColorNumberFast() == 2) {
       drive(60, false);
-      delay(400); 
-      turnExact(7, "left");
+      delay(450); 
+      turnExact(2, "left");
     }
     if (getColorNumberFast() == 3) {
       drive(60, false);
-      delay(400); 
-      turnExact(7, "right");
+      delay(450); 
+      turnExact(2, "right");
     }
 
     getColorNumberFast();
