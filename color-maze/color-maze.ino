@@ -63,6 +63,8 @@ RGBColor SECOND_COLOR;
 RGBColor THIRD_COLOR;
 RGBColor FOURTH_COLOR;
 
+String CURRENT_COLOR = "";
+
 bool colorIsSet[4] = {false, false, false, false};
 
 void encoderISR() {
@@ -174,7 +176,7 @@ void buttonISR() {
 
 void loop() {
   // checkRGBsensor();
-  // handleSerialControl();
+  handleSerialControl();
   // if (buttonPressed) {
   //   stopMotors();
   //   buttonPressed = false;
@@ -226,7 +228,7 @@ void loop() {
   //   lcd.print("Dist: " + String(distance) + "cm");
   // }
   
-  delay(150); 
+  delay(50); 
 }
 
 void detectColors() {
@@ -247,9 +249,9 @@ void detectColors() {
   int dist3 = colorDistance(currColor, THIRD_COLOR);
   int dist4 = colorDistance(currColor, FOURTH_COLOR);
   
-  // Debug RGB values
-  Serial.println("Current RGB: " + String(currColor.red) + "," + 
-                 String(currColor.green) + "," + String(currColor.blue));
+  // // Debug RGB values
+  // Serial.println("Current RGB: " + String(currColor.red) + "," + 
+  //                String(currColor.green) + "," + String(currColor.blue));
   
   // Find the minimum distance
   int minDist = dist1;
@@ -274,6 +276,8 @@ void detectColors() {
     colorName = "Color 4";
   }
   
+  CURRENT_COLOR = colorName;
+
   // Display the color name on LCD
   lcd.clear();
   lcd.setCursor(0, 0);
@@ -295,11 +299,11 @@ int colorDistance(const RGBColor& color1, const RGBColor& color2) {
 }
 
 bool areColorsSet() {
-  Serial.print("Colors Set: ");
-  Serial.print(colorIsSet[0]); Serial1.print(" ");
-  Serial.print(colorIsSet[1]); Serial1.print(" ");
-  Serial.print(colorIsSet[2]); Serial1.print(" ");
-  Serial.println(colorIsSet[3]);
+  // Serial.print("Colors Set: ");
+  // Serial.print(colorIsSet[0]); Serial1.print(" ");
+  // Serial.print(colorIsSet[1]); Serial1.print(" ");
+  // Serial.print(colorIsSet[2]); Serial1.print(" ");
+  // Serial.println(colorIsSet[3]);
   return colorIsSet[0] && colorIsSet[1] && colorIsSet[2] && colorIsSet[3];
 }
 
@@ -385,40 +389,90 @@ void displayLidarValues() {
 }
 
 
+// void turnExact(int angle, String direction = "") {
+//   if (angle == 0) return;  // No turn needed
+//   int startHeading = getCorrectedCompassBearing();
+//   int currentHeading = startHeading;
+//   int accumulatedAngle = 0;
+//   // decide turn dir. If no str provided decide dir by the closest
+//   bool isRightTurn = (direction == "") ? (angle > 0) : (direction == "right");  int targetAngle = abs(angle);
+//   // Loop until the accumulated angle reaches the target angle
+//   while (accumulatedAngle < targetAngle) {
+//     int newHeading = getCorrectedCompassBearing();
+//     int deltaAngle = newHeading - currentHeading;
+
+//     if (deltaAngle > 180) {
+//       deltaAngle -= 360;
+//     } else if (deltaAngle < -180) {
+//       deltaAngle += 360;
+//     }
+
+//     if (isRightTurn && deltaAngle > 0) {
+//       accumulatedAngle += deltaAngle;
+//     } else if (!isRightTurn && deltaAngle < 0) {
+//       accumulatedAngle -= deltaAngle;
+//     }
+
+//     currentHeading = newHeading;
+//     if (isRightTurn) {
+//       turnRight(40); 
+//     } else {
+//       turnLeft(40);
+//     }
+//     delay(50);
+//   }
+
+//   stopMotors(); // Stop the motors after the turn
+// }
+
 void turnExact(int angle, String direction = "") {
-  if (angle == 0) return;  // No turn needed
+  if (angle == 0) return; // No turn needed
+  
   int startHeading = getCorrectedCompassBearing();
   int currentHeading = startHeading;
   int accumulatedAngle = 0;
-  // decide turn dir. If no str provided decide dir by the closest
-  bool isRightTurn = (direction == "") ? (angle > 0) : (direction == "right");  int targetAngle = abs(angle);
+  
+  // Decide turn direction
+  bool isRightTurn;
+  if (direction == "") {
+    // If no direction specified, use the sign of angle
+    isRightTurn = (angle > 0);
+  } else {
+    // Explicitly use the provided direction
+    isRightTurn = (direction == "right");
+  }
+  
+  int targetAngle = abs(angle);
+  
   // Loop until the accumulated angle reaches the target angle
   while (accumulatedAngle < targetAngle) {
     int newHeading = getCorrectedCompassBearing();
     int deltaAngle = newHeading - currentHeading;
-
+    
     if (deltaAngle > 180) {
       deltaAngle -= 360;
     } else if (deltaAngle < -180) {
       deltaAngle += 360;
     }
-
+    
     if (isRightTurn && deltaAngle > 0) {
       accumulatedAngle += deltaAngle;
     } else if (!isRightTurn && deltaAngle < 0) {
       accumulatedAngle -= deltaAngle;
     }
-
+    
     currentHeading = newHeading;
+    
     if (isRightTurn) {
-      turnRight(40); 
+      turnRight(40);
     } else {
       turnLeft(40);
     }
+    
     delay(50);
   }
-
-  stopMotors(); // Stop the motors after the turn
+  
+  stopMotors(); // Assuming this is what "stopMot" was meant to be
 }
 
 void handleSerialControl() {
@@ -431,6 +485,9 @@ void handleSerialControl() {
 
     int pos_drive_dist = message.indexOf("Move");
     int pos_turn = message.indexOf("Turn");
+    int pos_drive_goal = message.indexOf("DriveGoal");
+    // cmd example: "DriveGoalDist:50"
+    int pos_drive_goal_dist = message.lastIndexOf("DriveDistGoal");
 
     if (pos_drive_dist > -1) {
       Serial.println("Command = Move");
@@ -478,12 +535,173 @@ void handleSerialControl() {
         lcd.print("Error: missing angle");
       }
     }
+    else if (pos_drive_goal > -1) {
+      Serial.print("Command = DriveGoal ");
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Command = DriveGoal ");
+      pos_turn = message.indexOf(":");
+
+      driveGoal();
+    }
+    else if (pos_drive_goal_dist > -1) {
+      Serial.print("Command = DriveDistGoal ");
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print("Command = DriveDistGoal ");
+      pos_turn = message.indexOf(":");
+
+      if (pos_turn > -1) {
+        String stat = message.substring(pos_turn + 1); // Extract the angle
+        int stat_int = stat.toInt();
+        lcd.print(stat_int);
+        driveGoalDist(stat_int);
+      } else {
+        lcd.setCursor(0, 1);
+        lcd.print("Error: wrong value");
+      }
+    }
     // Handle invalid or unrecognized commands
     else {
      lcd.setCursor(0, 0);
      lcd.print("Error: unknown cmd");
     }
   }
+}
+
+void driveGoalDist(int dist) {
+
+  if (!areColorsSet()) {
+    Serial.println("Set colors first!");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Set colors first!");
+    delay(3000);
+    lcd.clear();
+    
+    return;
+  }
+
+  int startDistance = get_dist();
+  int distanceTraveled = 0;
+  int currentDistance = 0;
+  const int TARGET_DISTANCE = dist; // Target distance in cm
+
+  // decided that color4 will always be the goal color
+  while ( getColorNumberFast() != getColorNumberFast() != 4 && distanceTraveled < TARGET_DISTANCE) {
+    getColorNumberFast();
+    currentDistance = get_dist();
+    distanceTraveled = abs(startDistance - currentDistance);
+
+    if (getColorNumberFast() == 2) {
+      drive(60, false);
+      delay(400); 
+      turnExact(7, "left");
+    }
+    if (getColorNumberFast() == 3) {
+      drive(60, false);
+      delay(400); 
+      turnExact(7, "right");
+    }
+
+    getColorNumberFast();
+    
+    //delay for stability
+    // delay(20);
+
+    drive(40, true);
+    //detectColors();
+
+  }
+
+  stopMotors();
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("GOAL REACHED");
+  delay(3000);
+  return;
+}
+
+int getColorNumberFast() {
+  // Check if colors are calibrated
+  if (!areColorsSet()) {
+    return -1;  // Error code for uncalibrated colors
+  }
+  
+  // Get current color
+  RGBColor currColor = checkRGBsensor();
+  
+  // Calculate color distances efficiently
+  int dist1 = colorDistance(currColor, FIRST_COLOR);
+  int dist2 = colorDistance(currColor, SECOND_COLOR);
+  int dist3 = colorDistance(currColor, THIRD_COLOR);
+  int dist4 = colorDistance(currColor, FOURTH_COLOR);
+  
+  int minDist = dist1;
+  int colorNum = 1;
+  
+  if (dist2 < minDist) {
+    minDist = dist2;
+    colorNum = 2;
+  }
+  
+  if (dist3 < minDist) {
+    minDist = dist3;
+    colorNum = 3;
+  }
+  
+  if (dist4 < minDist) {
+    minDist = dist4;
+    colorNum = 4;
+  }
+  
+  return colorNum;
+}
+
+void driveGoal() {
+
+  if (!areColorsSet()) {
+    Serial.println("Set colors first!");
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("Set colors first!");
+    delay(3000);
+    lcd.clear();
+    
+    return;
+  }
+
+  // decided that color4 will always be the goal color
+  while ( getColorNumberFast() != 4) {
+    getColorNumberFast();
+
+    if (getColorNumberFast() == 2) {
+      drive(60, false);
+      delay(400); 
+      turnExact(7, "left");
+    }
+    if (getColorNumberFast() == 3) {
+      drive(60, false);
+      delay(400); 
+      turnExact(7, "right");
+    }
+
+    getColorNumberFast();
+    
+    //delay for stability
+    // delay(20);
+
+    drive(40, true);
+    //detectColors();
+
+  }
+
+  stopMotors();
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("GOAL REACHED");
+  delay(3000);
+  return;
 }
 
 void move(int cm, int speedPercent) {
