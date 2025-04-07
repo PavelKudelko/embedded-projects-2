@@ -157,11 +157,25 @@ function forwards5() { move('forwards', 5); }
 function forwards20() { move('forwards', 20); }
 function backwards5() { move('backwards', 5); }
 function backwards20() { move('backwards', 20); }
+function Drive50() { DriveGoalDist(50); }
+function DriveGoal() { DriveGoal(); }
 
 // General movement function
 function move(dir, dis) {
     fetchWithAuth(`/${dir}${dis}`);
     console.log("Drive", dir, dis);
+}
+
+// Drive to goal function
+function DriveGoal() {
+    fetchWithAuth(`/DriveGoal`);
+    console.log("Drive to goal");
+}
+
+// Drive to goal distance function
+function DriveGoalDist(dist) {
+    fetchWithAuth(`/DriveGoalDist${dist}`);
+    console.log("Drive to goal distance");
 }
 
 // Fetch LIDAR data
