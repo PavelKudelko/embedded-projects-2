@@ -9,8 +9,8 @@ LiquidCrystal lcd(37, 36, 35, 34, 33, 32);
 // compass address
 const int ADDRESS = 0x60;
 // joystick pins
-const int joyX = A8;
-const int joyY = A9;
+// const int joyX = A8;
+// const int joyY = A9;
 const int joyButton = 19;
 // pulse count per cm (found by experiments)
 const int PULSE_AVG = 13.2;
@@ -62,10 +62,11 @@ RGBColor FIRST_COLOR;
 RGBColor SECOND_COLOR;
 RGBColor THIRD_COLOR;
 RGBColor FOURTH_COLOR;
+RGBColor FIFTH_COLOR;
 
 String CURRENT_COLOR = "";
 
-bool colorIsSet[4] = {false, false, false, false};
+bool colorIsSet[5] = {false, false, false, false, false};
 
 void encoderISR() {
   pulseCountR++;
@@ -130,7 +131,7 @@ void setup() {
   // define second serial monitor
   // Serial2.begin(9600);
   while (!Serial && !Serial1) {
-    ; // wait for serial port to connect
+    // wait for serial port to connect
   }
   myLidarLite.begin(0, true); // Set configuration to default and I2C to 400 kHz
   myLidarLite.configure(0); // Change this number to try out alternate configurations
@@ -204,6 +205,8 @@ void loop() {
         if (!colorIsSet[3]) calibrateColor(4);
         break;
       case 6:
+        if (!colorIsSet[4]) calibrateColor(5);
+        break;
       default:
         buttonPressCount = 0;
         break;
@@ -250,6 +253,7 @@ void detectColors() {
   int dist2 = colorDistance(currColor, SECOND_COLOR);
   int dist3 = colorDistance(currColor, THIRD_COLOR);
   int dist4 = colorDistance(currColor, FOURTH_COLOR);
+  int dist5 = colorDistance(currColor, FIFTH_COLOR);
   
   // // Debug RGB values
   // Serial.println("Current RGB: " + String(currColor.red) + "," + 
@@ -276,6 +280,12 @@ void detectColors() {
     minDist = dist4;
     closestColor = 4;
     colorName = "Color 4";
+  }
+
+  if (dist5 < minDist) {
+    minDist = dist5;
+    closestColor = 5;
+    colorName = "Color 5";
   }
   
   CURRENT_COLOR = colorName;
@@ -306,7 +316,7 @@ bool areColorsSet() {
   // Serial.print(colorIsSet[1]); Serial1.print(" ");
   // Serial.print(colorIsSet[2]); Serial1.print(" ");
   // Serial.println(colorIsSet[3]);
-  return colorIsSet[0] && colorIsSet[1] && colorIsSet[2] && colorIsSet[3];
+  return colorIsSet[0] && colorIsSet[1] && colorIsSet[2] && colorIsSet[3] && colorIsSet[4];
 }
 
 void calibrateColor(int numOfColor) {
@@ -342,15 +352,23 @@ void calibrateColor(int numOfColor) {
     lcd.print("COLOR 4 SET");
     delay(500);
   }
+  else if (numOfColor == 5) {
+    FIFTH_COLOR = checkRGBsensor();
+    colorIsSet[4] = true;
+    lcd.clear();
+    lcd.setCursor(0, 0);
+    lcd.print("COLOR 5 SET");
+    delay(500);
+  }
 
-  Serial.print("Color ");
-  Serial.print(numOfColor);
-  Serial.print(" Set: ");
-  Serial.print(FIRST_COLOR.red);
-  Serial.print(", ");
-  Serial.print(FIRST_COLOR.green);
-  Serial.print(", ");
-  Serial.println(FIRST_COLOR.blue);
+  // Serial.print("Color ");
+  // Serial.print(numOfColor);
+  // Serial.print(" Set: ");
+  // Serial.print(FIRST_COLOR.red);
+  // Serial.print(", ");
+  // Serial.print(FIRST_COLOR.green);
+  // Serial.print(", ");
+  // Serial.println(FIRST_COLOR.blue);
 
 }
 
@@ -538,23 +556,6 @@ void handleSerialControl() {
 
       driveGoal();
     }
-    else if (pos_drive_goal_dist > -1) {
-      Serial.print("Command = DriveDistGoal ");
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print("Command = DriveDistGoal ");
-      pos_turn = message.indexOf(":");
-
-      if (pos_turn > -1) {
-        String stat = message.substring(pos_turn + 1); // Extract the angle
-        int stat_int = stat.toInt();
-        lcd.print(stat_int);
-        driveGoalDist(stat_int);
-      } else {
-        lcd.setCursor(0, 1);
-        lcd.print("Error: wrong value");
-      }
-    }
     else if (message.indexOf("calibrateEncoder") > -1 ) {
       Serial.println("Command = calibrateEncoder");
 
@@ -577,10 +578,8 @@ void getEEPROM(){
   uint8_t retrievedValue = EEPROM.read(0);
   double distPerPulse = retrievedValue / 100.0; // Convert back to double
 
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("EEPROM val: ");
-  lcd.print(distPerPulse);
+  Serial.print("EEPROM val: ");
+  Serial.println(distPerPulse);
 }
 
 void calibrateEncoder() {
@@ -590,7 +589,7 @@ void calibrateEncoder() {
   int finalDist = initDist;  
 
   // Drive until we have traveled 20cm
-  while (abs(initDist - finalDist) < 20) { 
+  while (abs(initDist - finalDist) < 1) { 
     drive(30, true);
     finalDist = get_dist();
   }
@@ -613,77 +612,11 @@ void calibrateEncoder() {
   Serial.println(distPerPulse);
   Serial.println("### end of results ###");
 
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("dist: ");
-  lcd.print(abs(initDist - finalDist));
-  lcd.setCursor(0, 1);
-  lcd.print("pls cnt: ");
-  lcd.print(pulseCountR);
-  lcd.print("|");
-  lcd.print(pulseCountL);
-  lcd.setCursor(0, 2);
-  lcd.print("distPerPulse: ");
-  lcd.print(distPerPulse);
-
   // Store to EEPROM
   uint8_t scaledValue = round(distPerPulse * 100);
   EEPROM.update(0, scaledValue);
   lcd.setCursor(0, 3);
   lcd.print("EEPROM val updated");
-}
-
-void driveGoalDist(int dist) {
-
-  if (!areColorsSet()) {
-    Serial.println("Set colors first!");
-    lcd.clear();
-    lcd.setCursor(0, 0);
-    lcd.print("Set colors first!");
-    delay(3000);
-    lcd.clear();
-    
-    return;
-  }
-
-  int startDistance = get_dist();
-  int distanceTraveled = 0;
-  int currentDistance = 0;
-  const int TARGET_DISTANCE = dist; // Target distance in cm
-
-  // decided that color4 will always be the goal color
-  while ( getColorNumberFast() != getColorNumberFast() != 4 && distanceTraveled < TARGET_DISTANCE) {
-    getColorNumberFast();
-    currentDistance = get_dist();
-    distanceTraveled = abs(startDistance - currentDistance);
-
-    if (getColorNumberFast() == 2) {
-      drive(60, false);
-      delay(400); 
-      turnExact(7, "left");
-    }
-    if (getColorNumberFast() == 3) {
-      drive(60, false);
-      delay(400); 
-      turnExact(7, "right");
-    }
-
-    getColorNumberFast();
-    
-    //delay for stability
-    // delay(20);
-
-    drive(30, true);
-    //detectColors();
-
-  }
-
-  stopMotors();
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("GOAL REACHED");
-  delay(3000);
-  return;
 }
 
 int getColorNumberFast() {
@@ -700,6 +633,7 @@ int getColorNumberFast() {
   int dist2 = colorDistance(currColor, SECOND_COLOR);
   int dist3 = colorDistance(currColor, THIRD_COLOR);
   int dist4 = colorDistance(currColor, FOURTH_COLOR);
+  int dist5 = colorDistance(currColor, FIFTH_COLOR);
   
   int minDist = dist1;
   int colorNum = 1;
@@ -717,6 +651,11 @@ int getColorNumberFast() {
   if (dist4 < minDist) {
     minDist = dist4;
     colorNum = 4;
+  }
+
+  if (dist5 < minDist) {
+    minDist = dist5;
+    colorNum = 5;
   }
   
   return colorNum;
