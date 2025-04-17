@@ -8,6 +8,8 @@ LIDARLite myLidarLite;
 LiquidCrystal lcd(37, 36, 35, 34, 33, 32);
 // compass address
 const int ADDRESS = 0x60;
+// compass offset
+const int OFFSET = 2;
 // joystick pins
 // const int joyX = A8;
 // const int joyY = A9;
@@ -67,6 +69,11 @@ RGBColor FIFTH_COLOR;
 String CURRENT_COLOR = "";
 
 bool colorIsSet[5] = {false, false, false, false, false};
+
+// lidar measurments
+int startNorth = 0, startEast = 0, startSouth = 0, startWest = 0;
+int endNorth = 0, endEast = 0, endSouth = 0, endWest = 0;
+
 
 void encoderISR() {
   pulseCountR++;
@@ -185,32 +192,15 @@ void loop() {
   //   buttonPressed = false;
   // }
   int distance = get_dist();
+  // print to esp
   Serial1.println("LIDAR:" + String(distance));
   Serial1.println("COMPASS:" + String(getCorrectedCompassBearing()));
-  
+  // print to serial monitor
+  Serial.println("LIDAR:" + String(distance));
+  Serial.println("COMPASS:" + String(getCorrectedCompassBearing()));
+
   if (!areColorsSet()) {
-    switch (buttonPressCount) {
-      case 1:
-        break;
-      case 2:
-        if (!colorIsSet[0]) calibrateColor(1);
-        break;
-      case 3:
-        if (!colorIsSet[1]) calibrateColor(2);
-        break;
-      case 4:
-        if (!colorIsSet[2]) calibrateColor(3);
-        break;
-      case 5:
-        if (!colorIsSet[3]) calibrateColor(4);
-        break;
-      case 6:
-        if (!colorIsSet[4]) calibrateColor(5);
-        break;
-      default:
-        buttonPressCount = 0;
-        break;
-    }
+    setColors();
   }
   
   if (areColorsSet()) {
@@ -234,6 +224,33 @@ void loop() {
   // }
   
   delay(50); 
+}
+
+void setColors() {
+    if (!areColorsSet()) {
+    switch (buttonPressCount) {
+      case 1:
+        break;
+      case 2:
+        if (!colorIsSet[0]) calibrateColor(1);
+        break;
+      case 3:
+        if (!colorIsSet[1]) calibrateColor(2);
+        break;
+      case 4:
+        if (!colorIsSet[2]) calibrateColor(3);
+        break;
+      case 5:
+        if (!colorIsSet[3]) calibrateColor(4);
+        break;
+      case 6:
+        if (!colorIsSet[4]) calibrateColor(5);
+        break;
+      default:
+        buttonPressCount = 0;
+        break;
+    }
+  }
 }
 
 void detectColors() {
@@ -566,12 +583,115 @@ void handleSerialControl() {
       
       getEEPROM();
     }
+    else if (message.indexOf("measureStart") > -1) {
+      Serial.println("Command = measureStart");
+
+      measureStart();
+    }
+    else if (message.indexOf("measureEnd") > -1) {
+      Serial.println("Command = measureEnd");
+
+      measureEnd();
+    }
+    else if (message.indexOf("calibrateCompass") > -1) {
+      Serial.println("Command = calibrateCompass");
+
+      calibrateCompass();
+    }
     // Handle invalid or unrecognized commands
     else {
      lcd.setCursor(0, 0);
      lcd.print("Error: unknown cmd");
     }
   }
+}
+
+void findNorth () {
+  find_heading(0);
+}
+void findSouth () {
+  find_heading(180);
+}
+void findWest() {
+  find_heading(270);
+}
+void findEast() {
+  find_heading(90);
+}
+
+void find_heading(int targetBearing) {
+  int currentHeading;
+
+  while (true) {
+    currentHeading = getCorrectedCompassBearing();
+    // Calculate shortest angle difference
+    float angleDifference = currentHeading - targetBearing;
+    if (angleDifference > 180) angleDifference -= 360;
+    else if (angleDifference < -180) angleDifference += 360;
+
+    if (abs(angleDifference) <= OFFSET) {
+      stopMotors();
+      break;
+    }
+    // Turn in the direction of shortest path
+    if (angleDifference > 0) {
+      turnLeft(50);
+    } else {
+      turnRight(50);
+    }
+    delay(50);
+  }
+}
+
+
+void measureStart() {
+  if (buttonPressed) {
+    buttonPressed = false;
+    stopMotors();
+  }
+
+  findNorth();
+  startNorth = get_dist();
+
+  findEast();
+  startEast = get_dist();
+
+  findSouth();
+  startSouth = get_dist();
+
+  findWest();
+  startWest = get_dist();
+
+  Serial.print("Start Distances: ");
+  Serial.print(startNorth); Serial.print(", ");
+  Serial.print(startEast); Serial.print(", ");
+  Serial.print(startSouth); Serial.print(", ");
+  Serial.println(startWest);
+}
+
+void measureEnd() {
+  if (buttonPressed) {
+    buttonPressed = false;
+    stopMotors();
+  }
+
+  findNorth();
+  endNorth = get_dist();
+
+  findEast();
+  endEast = get_dist();
+
+  findSouth();
+  endSouth = get_dist();
+
+  findWest();
+  endWest = get_dist();
+
+  Serial.print("End Distances: ");
+  Serial.print(endNorth); Serial.print(", ");
+  Serial.print(endEast); Serial.print(", ");
+  Serial.print(endSouth); Serial.print(", ");
+  Serial.println(endWest);
 }
 
 void getEEPROM(){
@@ -674,16 +794,20 @@ void driveGoal() {
     return;
   }
 
+  // face north
+  findNorth();
+
   // decided that color4 will always be the goal color
-  while ( getColorNumberFast() != 4) {
+  while ( get) {
     getColorNumberFast();
 
     if (getColorNumberFast() == 2) {
-      drive(60, false);
-      delay(450); 
-      turnExact(2, "left");
+      drive(35, true);
     }
     if (getColorNumberFast() == 3) {
+      drive(75, true);
+    }
+    if (getColorNumberFast() == 4) {
       drive(60, false);
       delay(450); 
       turnExact(2, "right");
@@ -694,7 +818,7 @@ void driveGoal() {
     //delay for stability
     // delay(20);
 
-    drive(40, true);
+    drive(50, true);
     //detectColors();
 
   }
