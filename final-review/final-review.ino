@@ -187,10 +187,6 @@ void buttonISR() {
 void loop() {
   // checkRGBsensor();
   handleSerialControl();
-  // if (buttonPressed) {
-  //   stopMotors();
-  //   buttonPressed = false;
-  // }
   int distance = get_dist();
   // print to esp
   Serial1.println("LIDAR:" + String(distance));
@@ -667,6 +663,7 @@ void measureStart() {
   Serial.print(startEast); Serial.print(", ");
   Serial.print(startSouth); Serial.print(", ");
   Serial.println(startWest);
+  findNorth();
 }
 
 void measureEnd() {
@@ -782,7 +779,6 @@ int getColorNumberFast() {
 }
 
 void driveGoal() {
-
   if (!areColorsSet()) {
     Serial.println("Set colors first!");
     lcd.clear();
@@ -790,17 +786,22 @@ void driveGoal() {
     lcd.print("Set colors first!");
     delay(3000);
     lcd.clear();
-    
     return;
   }
-
+  
   // face north
   findNorth();
-
+  int acceptable_error = 1;
+  
+  // Get initial distance measurement
+  int distance = get_dist();
+  
   // decided that color4 will always be the goal color
-  while ( get) {
+  while (abs(getCorrectedCompassBearing()) > 5 || abs(distance - endNorth) > acceptable_error) {
+    // Update distance measurement in each loop iteration
+    distance = get_dist();
+    
     getColorNumberFast();
-
     if (getColorNumberFast() == 2) {
       drive(35, true);
     }
@@ -809,20 +810,16 @@ void driveGoal() {
     }
     if (getColorNumberFast() == 4) {
       drive(60, false);
-      delay(450); 
+      delay(450);
       turnExact(2, "right");
     }
-
-    getColorNumberFast();
     
     //delay for stability
     // delay(20);
-
     drive(50, true);
     //detectColors();
-
   }
-
+  
   stopMotors();
   lcd.clear();
   lcd.setCursor(0, 0);
