@@ -2,6 +2,7 @@
 #include <ESP8266WebServer.h>   // Library to create and manage a web server
 #include <FS.h>                 // Library for working with file systems (SPIFFS)
 
+
 // Wi-Fi and Authentication Credentials
 const char* WIFI_SSID = "Titenet-IoT";        // Wi-Fi network name (SSID)
 const char* WIFI_PASSWORD = "7kDtaphg";       // Wi-Fi network password
@@ -17,6 +18,9 @@ bool isWarning = false;
 unsigned long lastWarningTime = 0;
 const unsigned long WARNING_DURATION = 2000;
 String rgbData = "0;0;0";
+
+
+String encoderVal = "0";  // This will store the calibrated value
 
 ESP8266WebServer server(80);    // Create an instance of the WebServer on port 80 (default HTTP port)
 
@@ -179,6 +183,13 @@ void setup() {
     handleRGB(); 
   });
   
+  server.on("/calibrateEncoder", []() { 
+    if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
+      return server.requestAuthentication();
+    }
+    handleCalibrateEncoder(); 
+  });
+  
   // Handle not found requests
   server.onNotFound(handleNotFound);
 
@@ -214,6 +225,10 @@ void loop() {
     else if (data.startsWith("RGB:")) {
       rgbData = data.substring(4);
       rgbData.trim();
+    }
+    else if (data.startsWith("ENCODER_VAL:")) {
+      encoderVal = data.substring(12);
+      encoderVal.trim();
     }
     else {
       Serial.println("Command not found");
@@ -264,5 +279,10 @@ void handleRGB() {
 void  handleDriveGoal() {
   Serial.println("DriveGoal");
   server.send(200);
+}
+
+void handleCalibrateEncoder() {
+  Serial.println("CALIBRATE_ENCODER");
+  server.send(200, "text/plain", encoderVal);
 }
 

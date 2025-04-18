@@ -159,6 +159,7 @@ function backwards5() { move('backwards', 5); }
 function backwards20() { move('backwards', 20); }
 function Drive50() { DriveGoalDist(50); }
 function DriveGoal() { DriveGoal(); }
+function calibrateEncoder() { fetchWithAuth(`/calibrateEncoder`); }
 
 // General movement function
 function move(dir, dis) {

@@ -24,12 +24,7 @@
 <!-- <button class="button" onclick="Drive50()">DRIVE TO THE GOAL<br>50cm</button> -->
 <button class="button" onclick="DriveGoal()">DRIVE TO THE GOAL</button>
 </div>
-<h1>Compass Control</h1>
-<!-- Below is a code row for a slider you can drag left or right.
- It lets you choose a number between -360 and 360, with steps of 5.
- When you move the slider, it calls the updateCompass() function,
- and when you finish pressing and/or moving the mouse button, it calls the sendCompassValue() function.-->
-<input type="range" min="-360" max="360" step="5" id="compassSlider" oninput="updateCompass(this.value)" onchange="sendCompassValue(this.value)" value="0"/>
+
 <div id="compassValue">0°</div> <!-- This shows the current/last requested compass turning value -->
 <h1>Lidar Data</h1> <!-- Heading for the LIDAR data section -->
 <div id="lidarText">0 cm</div> <!-- Div element to display the LIDAR data, initially set to 0 cm -->
@@ -37,7 +32,10 @@
 <div id="compassDisplay">0°</div>
 <h1>RGB data</h1>
 <div id="rgbDisplay">0;0;0</div>
+<h1>Encoder data</h1>
+<div id="encoderDisplay">0</div>
 <!-- Color display window based on RGB value -->
+<button class="button" onclick="calibrateEncoder()">CALIBRATE ENCODER</button> 
 <div class="color-display-container">
   <div id="colorDisplay"></div>
   <div id="colorText">Detected: Black</div>
