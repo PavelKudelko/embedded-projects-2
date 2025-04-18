@@ -75,6 +75,9 @@ int startNorth = 0, startEast = 0, startSouth = 0, startWest = 0;
 int endNorth = 0, endEast = 0, endSouth = 0, endWest = 0;
 
 
+enum Dir { NORTH, EAST, SOUTH, WEST };
+
+
 void encoderISR() {
   pulseCountR++;
 }
@@ -677,94 +680,69 @@ bool areStartAndEndSet() {
   return true;
 }
 
+void face(Dir d) {
+  switch (d) {
+    case NORTH: findNorth();                   break;
+    case EAST:  findEast();                    break;
+    case WEST:  findWest();                    break;
+    case SOUTH: findNorth(); turnExact(180,"right"); break;
+  }
+}
+
+// Returns true if you can both see > TH cm *and* the floor‑color != 2
+bool canMove(Dir d, int TH) {
+  face(d);
+  int dist = get_dist();
+  int col  = getColorNumberFast();
+  return dist > TH && col != 2;
+}
+
+void stepForward(int speed, int ms) {
+  drive(speed, true);
+  delay(ms);
+  stopMotors();
+}
+
 void followWall(bool rightWall) {
-  int targetDistance = 30; // Target distance from wall in cm
-  int speed = 50;          // Default speed
+  const int THRESH   = 10;   // what counts as “open” (cm)
+  const int STEP_MS  = 200;  // how long each forward step lasts
+  int speed = 50;
 
-  findNorth();
-  if (rightWall) {
-    turnExact(90, "right");
-    while (get_dist() >= targetDistance) {
-      drive(speed, true);
+  while (true) {
+
+    // color zones adjust speed
+    int floorCol = getColorNumberFast();
+    if      (floorCol == 3) speed = 35;
+    else if (floorCol == 4) speed = 75;
+
+    // define your three “peeks” relative to the north axis
+    Dir front = NORTH;
+    Dir right = rightWall ? EAST : WEST;
+    Dir left  = rightWall ? WEST : EAST;
+
+    // 1) Right‑hand preference
+    if (canMove(right, THRESH)) {
+      face(right);
+      stepForward(speed, STEP_MS);
+      continue;
     }
-    stopMotors();
+    // 2) Else straight
+    if (canMove(front, THRESH)) {
+      face(front);
+      stepForward(speed, STEP_MS);
+      continue;
+    }
+    // 3) Else left
+    if (canMove(left, THRESH)) {
+      face(left);
+      stepForward(speed, STEP_MS);
+      continue;
+    }
+    // 4) Dead end: turn around
+    face(SOUTH);
   }
-  else {
-    turnExact(90, "left");
-    while (get_dist() >= targetDistance) {
-      drive(speed, true);
-    }
-    stopMotors();
-  }
-  int distToWall = get_dist();
-
-  while(true) {
-
-    if (buttonPressed) {
-      buttonPressed = false;
-      stopMotors();
-      return;
-    }
-    
-    if (getColorNumberFast() == 3) {
-      speed = 35;
-    }
-    if (getColorNumberFast() == 4) {
-      speed = 75;
-    }
-    if (getColorNumberFast() == 2) {
-      drive(50, false);
-      delay(450);
-      turnExact(2, "left");
-    }
-
-
-    if (get_dist() > targetDistance) {
-      turnExact(5, "right");
-    }
-    else if (get_dist() < targetDistance) {
-      turnExact(2, "left");
-    }
-
-    drive(speed, true);
-    delay(100);
-    stopMotors();
-  }
-    
 }
 
-// Helper function to check if we're near the goal
-bool checkIfNearGoal() {
-  // Only do a full position check occasionally to save time
-  static unsigned long lastCheckTime = 0;
-  if (millis() - lastCheckTime < 5000) { // Check every 5 seconds
-    return false;
-  }
-  
-  lastCheckTime = millis();
-  
-  // Get current measurements in all directions
-  findNorth();
-  int northDist = get_dist();
-  findEast();
-  int eastDist = get_dist();
-  findSouth();
-  int southDist = get_dist();
-  findWest();
-  int westDist = get_dist();
-  
-  // Compare with target coordinates
-  int errorMargin = 5; // cm
-  if (abs(northDist - endNorth) <= errorMargin && 
-      abs(eastDist - endEast) <= errorMargin && 
-      abs(southDist - endSouth) <= errorMargin && 
-      abs(westDist - endWest) <= errorMargin) {
-    return true; // Goal reached
-  }
-  
-  // Not at goal yet
-  return false;
-}
 
 // not really working yet
 void driveGoal() {
