@@ -82,6 +82,11 @@ Dir currentDirection = NORTH;
 int consecutiveLeftCalls = 0;
 int consecutive180Calls = 0;
 
+
+unsigned long lastTelemetryTime = 0;
+const unsigned long telemetryInterval = 1000;
+
+
 void encoderISR() {
   pulseCountR++;
 }
@@ -177,6 +182,8 @@ void setup() {
     Serial.println("No TCS34725 found ... check your connections");
     while (1); // halt!
   }
+
+  getEEPROM();
 }
 
 void buttonISR() {
@@ -197,8 +204,12 @@ void loop() {
   handleSerialControl();
   int distance = get_dist();
   // print to esp
-  // Serial1.println("LIDAR:" + String(distance));
-  // Serial1.println("COMPASS:" + String(getCorrectedCompassBearing()));
+  unsigned long currentTime = millis();
+  if (currentTime - lastTelemetryTime >= telemetryInterval) {
+    lastTelemetryTime = currentTime;
+    Serial1.println("LIDAR:" + String(distance));
+    Serial1.println("COMPASS:" + String(getCorrectedCompassBearing()));
+  }
   // // print to serial monitor
   // Serial.println("LIDAR:" + String(distance));
   // Serial.println("COMPASS:" + String(getCorrectedCompassBearing()));
@@ -465,6 +476,12 @@ void handleSerialControl() {
     else if (message.indexOf("getEEPROM") > -1 ) {
       Serial.println("Command = getEEPROM");
       
+      getEEPROM();
+    }
+    else if (message.indexOf("CALIBRATE_ENCODER") > -1) {
+      Serial.println("Command = calibrateEncoder");
+
+      calibrateEncoder();
       getEEPROM();
     }
     else if (message.indexOf("measureStart") > -1) {
@@ -871,7 +888,7 @@ bool canMoveLeft(int TH) {
         
         // If this is the second consecutive call, turn more
         if (consecutiveLeftCalls >= 2) {
-            turnExact(10, "left"); // Turn an additional 10 degrees
+            turnExact(20, "left"); // Turn an additional 10 degrees
             consecutiveLeftCalls = 0; // Reset counter after extra turn
         }
     } else {
@@ -905,7 +922,7 @@ bool canMove180(int TH) {
         
         // If this is the second consecutive call, turn more
         if (consecutive180Calls >= 2) {
-            turnExact(10, "left"); // Turn an additional 10 degrees
+            turnExact(20, "left"); // Turn an additional 10 degrees
             consecutive180Calls = 0; // Reset counter after extra turn
         }
     } else {
