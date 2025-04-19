@@ -666,16 +666,49 @@ int getColorNumberFast() {
   return colorNum;
 }
 
-bool areStartAndEndSet() {
-  if (startNorth == 0 && startSouth == 0 ) {
-    Serial.println("Set start point first!");
-    return false;
-  }
+bool isEndSet() {
   if (endNorth == 0 && endSouth == 0) {
     Serial.println("Set end point first!");
     return false;
   }
   return true;
+}
+
+
+// int endNorth = 0, endEast = 0, endSouth = 0, endWest = 0;
+
+void findEnd() {
+  findNorth();
+  int distanceNorth = get_dist();
+
+  if (distanceNorth > endNorth) {
+    while (get_dist() >= endNorth) {
+      drive(75, true);
+    }
+  }
+  else if (distanceNorth < endNorth) {
+    while (get_dist() <= endNorth) {
+      drive(75, false );
+    }
+  }
+
+  findWest();
+  int distWest = get_dist();
+  
+
+  if (distWest > endWest) {
+    while (get_dist() >= endWest) {
+      drive(75, true);
+    }
+  }
+  else if (distWest < endWest) {
+    while (get_dist() <= endWest) {
+      drive(75, false);
+    }
+  }
+
+  stopMotors();
+  Serial.println("GOAL REACHED!!!!!!!!!!!!!!!!!!!!!");
 }
 
 void stepForward(int speed, int ms) {
@@ -686,9 +719,24 @@ void stepForward(int speed, int ms) {
 
 // somehow working code
 void followWall(bool rightWall) {
+
+  if (!isEndSet()) {
+    Serial.println("SET FUCKING END COORDS FIRST IDIOT");
+    return;
+  }
+  if (!areColorsSet()) {
+    Serial.println("SET FUCKING COLORS");
+    return;
+  }
+  
+
   const int THRESH   = 25;   // what counts as “open” (cm)
   const int STEP_MS  = 200;  // how long each forward step lasts
   int speed = 50;
+
+  // 7 secs after color4 detected meaning it's the last section of a maze, i call function to find endPoint
+  bool color4Detected = false;
+  unsigned long color4DetectionTime = 0;
 
   findNorth();
   turnExact(90);
@@ -700,13 +748,28 @@ void followWall(bool rightWall) {
 
     // color zones adjust speed
     int floorCol = getColorNumberFast();
-    if      (floorCol == 3) speed = 35;
-    else if (floorCol == 4) speed = 75;
 
-    // define your three “peeks” relative to the north axis
-    // Dir front = NORTH;
-    // Dir right = rightWall ? EAST : WEST;
-    // Dir left  = rightWall ? WEST : EAST;
+    if (floorCol == 3) {
+      speed = 35;
+      color4Detected = false; // Reset color4 detection if we see color 3
+    }
+    else if (floorCol == 4) {
+      speed = 75;
+      
+      // If color 4 wasn't already detected, record the time
+      if (!color4Detected) {
+        color4Detected = true;
+        color4DetectionTime = millis();
+        Serial.println("Color 4 detected, timer started");
+      }
+  }
+
+
+    if (color4Detected && (millis() - color4DetectionTime >= 7000)) {
+      Serial.println("7 seconds since color 4, calling findEnd()");
+      findEnd(); // Call the findEnd function
+      return; // Exit the followWall function after calling findEnd
+    }
 
 
     // 1) Right‑hand preference
@@ -746,40 +809,110 @@ bool canMoveRight(int TH) {
   return dist > TH && color != 2;
 }
 
+// working code (alomost)
+// bool canMoveLeft(int TH) {
+//   turnExact(2, "left");
+//   int dist = get_dist();
+//   int color  = getColorNumberFast();
+//   Serial.print("canMoveLeft: ");
+//   Serial.print(dist);
+//   Serial.print(" ");
+//   Serial.println(color);
+
+//   if (color == 2) {
+//     drive(50, false);
+//     delay(200);
+//     turnExact(6, "left");
+//   }
+
+//   return dist > TH && color != 2;
+// }
+
+// bool canMove180(int TH) {
+//   turnExact(2, "left");
+//   int dist = get_dist();
+//   int color  = getColorNumberFast();
+//   Serial.print("canMove180: ");
+//   Serial.print(dist);
+//   Serial.print(" ");
+//   Serial.println(color);
+
+//   if (color == 2) {
+//     drive(50, false);
+//     delay(200);
+//     turnExact(6, "left");
+//   }
+
+//   return dist > TH && color != 2;
+// }
+
+
 bool canMoveLeft(int TH) {
-  turnExact(2, "left");
-  int dist = get_dist();
-  int color  = getColorNumberFast();
-  Serial.print("canMoveLeft: ");
-  Serial.print(dist);
-  Serial.print(" ");
-  Serial.println(color);
-
-  if (color == 2) {
-    drive(50, false);
-    delay(200);
-    turnExact(6, "left");
-  }
-
-  return dist > TH && color != 2;
+    turnExact(2, "left");
+    int dist = get_dist();
+    int color = getColorNumberFast();
+    Serial.print("canMoveLeft: ");
+    Serial.print(dist);
+    Serial.print(" ");
+    Serial.println(color);
+    
+    if (color == 2) {
+        drive(50, false);
+        delay(200);
+        turnExact(6, "left");
+    }
+    
+    bool canMove = dist > TH && color != 2;
+    
+    // If this is a successful move, increment counter and check for consecutive calls
+    if (canMove) {
+        consecutiveLeftCalls++;
+        consecutive180Calls = 0; // Reset the other counter
+        
+        // If this is the second consecutive call, turn more
+        if (consecutiveLeftCalls >= 2) {
+            turnExact(10, "left"); // Turn an additional 10 degrees
+            consecutiveLeftCalls = 0; // Reset counter after extra turn
+        }
+    } else {
+        consecutiveLeftCalls = 0; // Reset counter on unsuccessful move
+    }
+    
+    return canMove;
 }
 
 bool canMove180(int TH) {
-  turnExact(2, "left");
-  int dist = get_dist();
-  int color  = getColorNumberFast();
-  Serial.print("canMove180: ");
-  Serial.print(dist);
-  Serial.print(" ");
-  Serial.println(color);
-
-  if (color == 2) {
-    drive(50, false);
-    delay(200);
-    turnExact(6, "left");
-  }
-
-  return dist > TH && color != 2;
+    turnExact(2, "left");
+    int dist = get_dist();
+    int color = getColorNumberFast();
+    Serial.print("canMove180: ");
+    Serial.print(dist);
+    Serial.print(" ");
+    Serial.println(color);
+    
+    if (color == 2) {
+        drive(50, false);
+        delay(200);
+        turnExact(6, "left");
+    }
+    
+    bool canMove = dist > TH && color != 2;
+    
+    // If this is a successful move, increment counter and check for consecutive calls
+    if (canMove) {
+        consecutive180Calls++;
+        consecutiveLeftCalls = 0; // Reset the other counter
+        
+        // If this is the second consecutive call, turn more
+        if (consecutive180Calls >= 2) {
+            turnExact(10, "left"); // Turn an additional 10 degrees
+            consecutive180Calls = 0; // Reset counter after extra turn
+        }
+    } else {
+        consecutive180Calls = 0; // Reset counter on unsuccessful move
+    }
+    
+    return canMove;
 }
 
 // not really working yet
@@ -790,10 +923,10 @@ void driveGoal() {
     delay(3000);
     return;
   }
-  // need to set coords first
-  if (!areStartAndEndSet()) {
-    return;
-  }
+  // // need to set coords first
+  // if (!areStartAndEndSet()) {
+  //   return;
+  // }
   
   // We need to use the measurements stored in endNorth, endEast, endSouth, endWest
   // These should be set previously using measureEnd()
