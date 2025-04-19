@@ -74,9 +74,13 @@ bool colorIsSet[4] = {false, false, false, false};
 int startNorth = 0, startEast = 0, startSouth = 0, startWest = 0;
 int endNorth = 0, endEast = 0, endSouth = 0, endWest = 0;
 
-
 enum Dir { NORTH, EAST, SOUTH, WEST };
 
+Dir currentDirection = NORTH;
+
+
+int consecutiveLeftCalls = 0;
+int consecutive180Calls = 0;
 
 void encoderISR() {
   pulseCountR++;
@@ -188,15 +192,16 @@ void buttonISR() {
 }
 
 void loop() {
+
   // checkRGBsensor();
   handleSerialControl();
   int distance = get_dist();
   // print to esp
-  Serial1.println("LIDAR:" + String(distance));
-  Serial1.println("COMPASS:" + String(getCorrectedCompassBearing()));
-  // print to serial monitor
-  Serial.println("LIDAR:" + String(distance));
-  Serial.println("COMPASS:" + String(getCorrectedCompassBearing()));
+  // Serial1.println("LIDAR:" + String(distance));
+  // Serial1.println("COMPASS:" + String(getCorrectedCompassBearing()));
+  // // print to serial monitor
+  // Serial.println("LIDAR:" + String(distance));
+  // Serial.println("COMPASS:" + String(getCorrectedCompassBearing()));
 
   if (!areColorsSet()) {
     setColors();
@@ -222,7 +227,6 @@ void loop() {
   //   lcd.print("Dist: " + String(distance) + "cm");
   // }
   
-  delay(50); 
 }
 
 void setColors() {
@@ -640,7 +644,6 @@ int getColorNumberFast() {
   int dist2 = colorDistance(currColor, SECOND_COLOR);
   int dist3 = colorDistance(currColor, THIRD_COLOR);
   int dist4 = colorDistance(currColor, FOURTH_COLOR);
-  int dist5 = colorDistance(currColor, FIFTH_COLOR);
   
   int minDist = dist1;
   int colorNum = 1;
@@ -659,11 +662,6 @@ int getColorNumberFast() {
     minDist = dist4;
     colorNum = 4;
   }
-
-  if (dist5 < minDist) {
-    minDist = dist5;
-    colorNum = 5;
-  }
   
   return colorNum;
 }
@@ -680,33 +678,23 @@ bool areStartAndEndSet() {
   return true;
 }
 
-void face(Dir d) {
-  switch (d) {
-    case NORTH: findNorth();                   break;
-    case EAST:  findEast();                    break;
-    case WEST:  findWest();                    break;
-    case SOUTH: findNorth(); turnExact(180,"right"); break;
-  }
-}
-
-// Returns true if you can both see > TH cm *and* the floor‑color != 2
-bool canMove(Dir d, int TH) {
-  face(d);
-  int dist = get_dist();
-  int col  = getColorNumberFast();
-  return dist > TH && col != 2;
-}
-
 void stepForward(int speed, int ms) {
   drive(speed, true);
   delay(ms);
   stopMotors();
 }
 
+// somehow working code
 void followWall(bool rightWall) {
-  const int THRESH   = 10;   // what counts as “open” (cm)
+  const int THRESH   = 25;   // what counts as “open” (cm)
   const int STEP_MS  = 200;  // how long each forward step lasts
   int speed = 50;
+
+  findNorth();
+  turnExact(90);
+  while (get_dist() > 15) {
+    drive(50, true);
+  }
 
   while (true) {
 
@@ -716,33 +704,83 @@ void followWall(bool rightWall) {
     else if (floorCol == 4) speed = 75;
 
     // define your three “peeks” relative to the north axis
-    Dir front = NORTH;
-    Dir right = rightWall ? EAST : WEST;
-    Dir left  = rightWall ? WEST : EAST;
+    // Dir front = NORTH;
+    // Dir right = rightWall ? EAST : WEST;
+    // Dir left  = rightWall ? WEST : EAST;
+
 
     // 1) Right‑hand preference
-    if (canMove(right, THRESH)) {
-      face(right);
+    if (canMoveRight(THRESH)) {
       stepForward(speed, STEP_MS);
       continue;
     }
     // 2) Else straight
-    if (canMove(front, THRESH)) {
-      face(front);
+    else if (canMoveLeft(THRESH)) {
+      // turnExact(2, "left");
       stepForward(speed, STEP_MS);
       continue;
     }
     // 3) Else left
-    if (canMove(left, THRESH)) {
-      face(left);
+    else if (canMove180(THRESH)) {
+      // turnExact(2, "left");
       stepForward(speed, STEP_MS);
       continue;
     }
-    // 4) Dead end: turn around
-    face(SOUTH);
+    else {
+      turnExact(90, "left");
+      stepForward(speed, STEP_MS);
+      continue;
+    }
   }
 }
 
+bool canMoveRight(int TH) {
+  turnExact(2, "right");
+  int dist = get_dist();
+  int color  = getColorNumberFast();
+  Serial.print("canMoveRight: ");
+  Serial.print(dist);
+  Serial.print(" ");
+  Serial.println(color);
+
+  return dist > TH && color != 2;
+}
+
+bool canMoveLeft(int TH) {
+  turnExact(2, "left");
+  int dist = get_dist();
+  int color  = getColorNumberFast();
+  Serial.print("canMoveLeft: ");
+  Serial.print(dist);
+  Serial.print(" ");
+  Serial.println(color);
+
+  if (color == 2) {
+    drive(50, false);
+    delay(200);
+    turnExact(6, "left");
+  }
+
+  return dist > TH && color != 2;
+}
+
+bool canMove180(int TH) {
+  turnExact(2, "left");
+  int dist = get_dist();
+  int color  = getColorNumberFast();
+  Serial.print("canMove180: ");
+  Serial.print(dist);
+  Serial.print(" ");
+  Serial.println(color);
+
+  if (color == 2) {
+    drive(50, false);
+    delay(200);
+    turnExact(6, "left");
+  }
+
+  return dist > TH && color != 2;
+}
 
 // not really working yet
 void driveGoal() {
