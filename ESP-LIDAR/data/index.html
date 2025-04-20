@@ -9,36 +9,66 @@
 <script src="script.js" defer></script> <!-- Defer ensures that page contents load first and JavaScript runs only after that -->
 </head>
 <body>
-	<small>v1.1</small>
-<h1>Motor Control</h1>
-<button class="button button3" onclick="logout()">LOGOUT</button>
-<div id="warningMessage" class="warning-message">
- Warning: Obstacle detected! Distance less than 10cm
-</div>
+    <header>
+        <div class="version-tag"><small>v1.1</small></div>
+        <h1 class="main-title">Robot Control Dashboard</h1>
+        <button class="button button3" onclick="logout()">LOGOUT</button>
+    </header>
 
-<div class="container"> <!-- This is a box that holds the buttons. -->
-<!-- <button class="button" onclick="forwards5()">FORWARDS<br>5cm</button> --> <!-- The onclick="forwards5()" tells the page to run the forwards5() function in the JavaScript when the button is clicked -->
-<!-- <button class="button" onclick="forwards20()">FORWARDS<br>20cm</button> -->
-<!-- <button class="button button2" onclick="backwards5()">BACKWARDS<br>5cm</button> -->
-<!-- <button class="button button2" onclick="backwards20()">BACKWARDS<br>20cm</button> -->
-<!-- <button class="button" onclick="Drive50()">DRIVE TO THE GOAL<br>50cm</button> -->
-<button class="button" onclick="DriveGoal()">DRIVE TO THE GOAL</button>
-</div>
+    <div id="warningMessage" class="warning-message">
+        Warning: Obstacle detected! Distance less than 10cm
+    </div>
 
-<div id="compassValue">0°</div> <!-- This shows the current/last requested compass turning value -->
-<h1>Lidar Data</h1> <!-- Heading for the LIDAR data section -->
-<div id="lidarText">0 cm</div> <!-- Div element to display the LIDAR data, initially set to 0 cm -->
-<h1>Compass value</h1>
-<div id="compassDisplay">0°</div>
-<h1>RGB data</h1>
-<div id="rgbDisplay">0;0;0</div>
-<h1>Encoder data</h1>
-<div id="encoderDisplay">0</div>
-<!-- Color display window based on RGB value -->
-<button class="button" onclick="calibrateEncoder()">CALIBRATE ENCODER</button> 
-<div class="color-display-container">
-  <div id="colorDisplay"></div>
-  <div id="colorText">Detected: Black</div>
-</div>
+    <main class="dashboard-grid">
+        <!-- Control Panel Section -->
+        <section class="dashboard-card control-panel">
+            <h2>Control Panel</h2>
+            <div class="button-container">
+                <button class="button" onclick="DriveGoal()">DRIVE TO THE GOAL</button>
+                <button class="button" onclick="calibrateEncoder()">CALIBRATE ENCODER</button>
+            </div>
+        </section>
+
+        <!-- Sensor Data Section -->
+        <section class="dashboard-card sensor-data">
+            <h2>Sensor Readings</h2>
+            <div class="sensor-grid">
+                <div class="sensor-item">
+                    <h3>LIDAR</h3>
+                    <div id="lidarText" class="sensor-value">0 cm</div>
+                </div>
+                <div class="sensor-item">
+                    <h3>Compass</h3>
+                    <div id="compassDisplay" class="sensor-value">0°</div>
+                </div>
+                <div class="sensor-item">
+                    <h3>Encoder</h3>
+                    <div id="encoderDisplay" class="sensor-value">0</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Color Detection Section -->
+        <section class="dashboard-card color-detection">
+            <h2>Color Detection</h2>
+            <div class="color-display-container">
+                <div class="color-info">
+                    <div id="colorDisplay"></div>
+                    <div id="colorText">Detected: Black</div>
+                </div>
+                <div class="rgb-data">
+                    <h3>RGB Values</h3>
+                    <div id="rgbDisplay" class="sensor-value">0;0;0</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Compass Value (Hidden but kept for compatibility) -->
+        <div id="compassValue" style="display: none;">0°</div>
+    </main>
+
+    <footer>
+        <p>Color Maze Navigation Robot - Embedded Systems 2</p>
+    </footer>
 </body>
 </html>
