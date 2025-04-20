@@ -559,7 +559,7 @@ void getEEPROM(){
   Serial.println(distPerPulse);
 
   // send data to esp
-  Serial1.print("ENCODER_VAL:" + String(distPerPulse));
+  Serial1.println("ENCODER_VAL:" + String(distPerPulse));
 }
 
 void calibrateEncoder() {
