@@ -131,6 +131,7 @@ int getCorrectedCompassBearing() {
   }
   // Convert to degrees
   float correctedDegrees = (correctedRaw * 360.0) / 255.0;
+  Serial1.println("COMPASS:" + String(correctedDegrees)); // send to esp
   return static_cast<int>(correctedDegrees); // Return as integer
 }
 
@@ -183,7 +184,6 @@ void setup() {
     Serial.println("No TCS34725 found ... check your connections");
     while (1); // halt!
   }
-
   getEEPROM();
 }
 
@@ -193,33 +193,25 @@ void buttonISR() {
   if (currentTime - lastDebounceTime > DEBOUNCE) {
     buttonPressed = true;
     lastDebounceTime = currentTime;
-    //lcd.clear();
-
     buttonPressCount ++;
   }
 }
 
 void loop() {
-
-  // checkRGBsensor();
   handleSerialControl();
   int distance = get_dist();
-  // print to esp
   unsigned long currentTime = millis();
   if (currentTime - lastTelemetryTime >= telemetryInterval) {
     lastTelemetryTime = currentTime;
-    Serial1.println("LIDAR:" + String(distance));
-    Serial1.println("COMPASS:" + String(getCorrectedCompassBearing()));
+    // trigger lidar and compass functions to send the data to esp
+    get_dist();
+    getCorrectedCompassBearing();
   }
-  // // print to serial monitor
-  // Serial.println("LIDAR:" + String(distance));
-  // Serial.println("COMPASS:" + String(getCorrectedCompassBearing()));
-
   if (!areColorsSet()) {
     setColors();
   }
-  
   if (areColorsSet()) {
+    // this triggers checkRGB, which sends rgb data to esp
     detectColors();
   } else {
     lcd.clear();
@@ -228,17 +220,6 @@ void loop() {
     lcd.setCursor(0, 1);
     lcd.print("Btn Count: " + String(buttonPressCount));
   }
-  
-  // if (distance <= 10) {
-  //   Serial1.println("WARNING");
-  //   // Debug obstacle info
-  //   lcd.clear();
-  //   lcd.setCursor(0, 0);
-  //   lcd.print("OBSTACLE NEAR!");
-  //   lcd.setCursor(0, 1);
-  //   lcd.print("Dist: " + String(distance) + "cm");
-  // }
-  
 }
 
 void setColors() {
@@ -332,11 +313,6 @@ int colorDistance(const RGBColor& color1, const RGBColor& color2) {
 }
 
 bool areColorsSet() {
-  // Serial.print("Colors Set: ");
-  // Serial.print(colorIsSet[0]); Serial1.print(" ");
-  // Serial.print(colorIsSet[1]); Serial1.print(" ");
-  // Serial.print(colorIsSet[2]); Serial1.print(" ");
-  // Serial.println(colorIsSet[3]);
   return colorIsSet[0] && colorIsSet[1] && colorIsSet[2] && colorIsSet[3];
 }
 
@@ -391,6 +367,9 @@ RGBColor checkRGBsensor() {
   color.red = (int)r;
   color.green = (int)g;
   color.blue = (int)b;
+
+  // send data to esp
+  Serial1.println("RGB:" + String((int)r) + ";" + String((int)g) + ";" + String((int)b));
   
   return color;
 }
@@ -467,7 +446,8 @@ void handleSerialControl() {
       lcd.setCursor(0, 0);
       lcd.print("Command = DriveGoal ");
 
-      driveGoal();
+      // driveGoal();
+      followWall(true);
     }
     else if (message.indexOf("calibrateEncoder") > -1 ) {
       Serial.println("Command = calibrateEncoder");
@@ -484,11 +464,6 @@ void handleSerialControl() {
 
       calibrateEncoder();
       getEEPROM();
-    }
-    else if (message.indexOf("measureStart") > -1) {
-      Serial.println("Command = measureStart");
-
-      measureStart();
     }
     else if (message.indexOf("measureEnd") > -1) {
       Serial.println("Command = measureEnd");
@@ -550,33 +525,6 @@ void find_heading(int targetBearing) {
   }
 }
 
-
-void measureStart() {
-  if (buttonPressed) {
-    buttonPressed = false;
-    stopMotors();
-  }
-
-  findNorth();
-  startNorth = get_dist();
-
-  findEast();
-  startEast = get_dist();
-
-  findSouth();
-  startSouth = get_dist();
-
-  findWest();
-  startWest = get_dist();
-
-  Serial.print("Start Distances: ");
-  Serial.print(startNorth); Serial.print(", ");
-  Serial.print(startEast); Serial.print(", ");
-  Serial.print(startSouth); Serial.print(", ");
-  Serial.println(startWest);
-  findNorth();
-}
-
 void measureEnd() {
   if (buttonPressed) {
     buttonPressed = false;
@@ -609,6 +557,9 @@ void getEEPROM(){
 
   Serial.print("EEPROM val: ");
   Serial.println(distPerPulse);
+
+  // send data to esp
+  Serial1.print("ENCODER_VAL:" + String(distPerPulse));
 }
 
 void calibrateEncoder() {
@@ -725,6 +676,8 @@ void findEnd() {
     }
   }
 
+  findNorth();
+
   stopMotors();
   Serial.println("GOAL REACHED!!!!!!!!!!!!!!!!!!!!!");
 }
@@ -735,6 +688,7 @@ void stepForward(int speed, int ms) {
   stopMotors();
 }
 
+// this is so-called right-hand algorithm, it's sticks to whatever is on the right
 // somehow working code
 void followWall(bool rightWall) {
 
@@ -827,44 +781,6 @@ bool canMoveRight(int TH) {
   return dist > TH && color != 2;
 }
 
-// working code (alomost)
-// bool canMoveLeft(int TH) {
-//   turnExact(2, "left");
-//   int dist = get_dist();
-//   int color  = getColorNumberFast();
-//   Serial.print("canMoveLeft: ");
-//   Serial.print(dist);
-//   Serial.print(" ");
-//   Serial.println(color);
-
-//   if (color == 2) {
-//     drive(50, false);
-//     delay(200);
-//     turnExact(6, "left");
-//   }
-
-//   return dist > TH && color != 2;
-// }
-
-// bool canMove180(int TH) {
-//   turnExact(2, "left");
-//   int dist = get_dist();
-//   int color  = getColorNumberFast();
-//   Serial.print("canMove180: ");
-//   Serial.print(dist);
-//   Serial.print(" ");
-//   Serial.println(color);
-
-//   if (color == 2) {
-//     drive(50, false);
-//     delay(200);
-//     turnExact(6, "left");
-//   }
-
-//   return dist > TH && color != 2;
-// }
-
-
 bool canMoveLeft(int TH) {
     turnExact(2, "left");
     int dist = get_dist();
@@ -889,7 +805,8 @@ bool canMoveLeft(int TH) {
         
         // If this is the second consecutive call, turn more
         if (consecutiveLeftCalls >= 2) {
-            turnExact(20, "left"); // Turn an additional 10 degrees
+          // 52 it's just random val found by expirements
+            turnExact(52, "left"); // Turn an additional 10 degrees
             consecutiveLeftCalls = 0; // Reset counter after extra turn
         }
     } else {
@@ -923,7 +840,8 @@ bool canMove180(int TH) {
         
         // If this is the second consecutive call, turn more
         if (consecutive180Calls >= 2) {
-            turnExact(20, "left"); // Turn an additional 10 degrees
+          // 52 it's just random val found by expirements
+            turnExact(52, "left"); // Turn an additional 10 degrees
             consecutive180Calls = 0; // Reset counter after extra turn
         }
     } else {
@@ -933,192 +851,13 @@ bool canMove180(int TH) {
     return canMove;
 }
 
-// not really working yet
-void driveGoal() {
-  // First, make sure colors are set for speed control
-  if (!areColorsSet()) {
-    Serial.println("Set colors first!");
-    delay(3000);
-    return;
-  }
-  // // need to set coords first
-  // if (!areStartAndEndSet()) {
-  //   return;
-  // }
-  
-  // We need to use the measurements stored in endNorth, endEast, endSouth, endWest
-  // These should be set previously using measureEnd()
-  
-  // Start navigating towards the goal
-  bool goalReached = false;
-  int currentHeading = getCorrectedCompassBearing();
-  
-  while (!goalReached) {
-    // First, determine our current position relative to the goal
-    // by measuring in all four directions
-    findNorth();
-    int northDist = get_dist();
-    findEast();
-    int eastDist = get_dist();
-    findSouth();
-    int southDist = get_dist();
-    findWest();
-    int westDist = get_dist();
-    
-    // Calculate how close we are to the goal
-    int northDiff = abs(northDist - endNorth);
-    int eastDiff = abs(eastDist - endEast);
-    int southDiff = abs(southDist - endSouth);
-    int westDiff = abs(westDist - endWest);
-    
-    // If we're close enough in all directions, we've reached the goal
-    // Define an acceptable error margin
-    int errorMargin = 5; // cm
-    if (northDiff <= errorMargin && eastDiff <= errorMargin && 
-        southDiff <= errorMargin && westDiff <= errorMargin) {
-      goalReached = true;
-      break;
-    }
-    
-    // Determine which direction to move to get closer to the goal
-    // Choose the direction with the biggest difference
-    int maxDiff = max(max(northDiff, eastDiff), max(southDiff, westDiff));
-    
-    // Check color for speed control
-    int currColor = getColorNumberFast();
-    int moveSpeed = 50; // Default speed 50%
-    
-    // Adjust speed based on color
-    if (currColor == 2) moveSpeed = 35; // Blue marking - 35% speed
-    else if (currColor == 3) moveSpeed = 75; // Green marking - 75% speed
-    else if (currColor == 4) {
-      // Red marking - virtual wall - back up and try different direction
-      drive(40, false);
-      delay(500);
-      turnExact(90, "right");
-      continue;
-    }
-    
-    // Move in the direction that gets us closer to the goal
-    if (maxDiff == northDiff) {
-      if (northDist > endNorth) {
-        // Need to go north
-        findNorth();
-        drive(moveSpeed, true);
-      } else {
-        // Need to go south
-        findSouth();
-        drive(moveSpeed, true);
-      }
-    } else if (maxDiff == eastDiff) {
-      if (eastDist > endEast) {
-        // Need to go east
-        findEast();
-        drive(moveSpeed, true);
-      } else {
-        // Need to go west
-        findWest();
-        drive(moveSpeed, true);
-      }
-    } else if (maxDiff == southDiff) {
-      if (southDist > endSouth) {
-        // Need to go south
-        findSouth();
-        drive(moveSpeed, true);
-      } else {
-        // Need to go north
-        findNorth();
-        drive(moveSpeed, true);
-      }
-    } else {
-      if (westDist > endWest) {
-        // Need to go west
-        findWest();
-        drive(moveSpeed, true);
-      } else {
-        // Need to go east
-        findEast();
-        drive(moveSpeed, true);
-      }
-    }
-    
-    // Drive forward and check for obstacles
-    int obstacleCheck = get_dist();
-    if (obstacleCheck < 15) {
-      // Obstacle detected, stop and try a different direction
-      stopMotors();
-      turnExact(90, "right");
-      continue;
-    }
-    
-    // Move forward for a bit, then reassess
-    delay(500);
-    stopMotors();
-  }
-  
-  stopMotors();
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("GOAL REACHED!");
-  delay(2000);
-}
-
-// void driveGoal() {
-//   if (!areColorsSet()) {
-//     Serial.println("Set colors first!");
-//     lcd.clear();
-//     lcd.setCursor(0, 0);
-//     lcd.print("Set colors first!");
-//     delay(3000);
-//     lcd.clear();
-//     return;
-//   }
-  
-//   // face north
-//   findNorth();
-//   int acceptable_error = 1;
-  
-//   // Get initial distance measurement
-//   int distance = get_dist();
-  
-//   // decided that color4 will always be the goal color
-//   while (abs(getCorrectedCompassBearing()) > 5 || abs(distance - endNorth) > acceptable_error) {
-//     // Update distance measurement in each loop iteration
-//     distance = get_dist();
-    
-//     getColorNumberFast();
-//     if (getColorNumberFast() == 2) {
-//       drive(35, true);
-//     }
-//     if (getColorNumberFast() == 3) {
-//       drive(75, true);
-//     }
-//     if (getColorNumberFast() == 4) {
-//       drive(60, false);
-//       delay(450);
-//       turnExact(2, "right");
-//     }
-    
-//     //delay for stability
-//     // delay(20);
-//     drive(50, true);
-//     //detectColors();
-//   }
-  
-//   stopMotors();
-//   lcd.clear();
-//   lcd.setCursor(0, 0);
-//   lcd.print("GOAL REACHED");
-//   delay(3000);
-//   return;
-// }
-
 int get_dist() {
   for (int i = 0; i < LIDAR_SAMPLES; i++) {
     lidar_vals[i] = myLidarLite.distance() - LIDAR_CORR_VAL;
   }
-
-  return avg_lidar_val(lidar_vals, LIDAR_SAMPLES); // Calculate average
+  int dist = avg_lidar_val(lidar_vals, LIDAR_SAMPLES); // Calculate average
+  Serial1.println("LIDAR:" + String(dist)); // send distance to esp
+  return dist;
 }
 
 void turnLeft(int speedPercent) {
