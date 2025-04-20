@@ -73,7 +73,6 @@ setInterval(fetchLidarData, 500);
 setInterval(fetchCompassData, 500);
 setInterval(fetchWarning, 300);
 setInterval(fetchRGB, 200);
-setInterval(fetchEncoder, 200);
 
 // Color display update function
 function updateColorDisplay(rgbString) {
@@ -234,7 +233,7 @@ async function fetchRGB() {
 }
 
 // Encoder calibration function
-async function calibrateEncoder() { 
+async function calibrateEncoder() {
     try {
         const response = await fetchWithAuth(`/calibrateEncoder`);
         if (!response) return;
@@ -242,12 +241,12 @@ async function calibrateEncoder() {
         const data = await response.text();
         console.log("Encoder calibration data:", data);
 
+        const encoderDisplay = document.getElementById('encoderDisplay');
         if (encoderDisplay) {
             encoderDisplay.innerText = data;
-            console.log("Encoder calibration data:", data);
         }
     } catch (error) {
-        console.error('Error fetching encoder data:', error);
+        console.error('Error calibrating encoder:', error);
     }
 }
 

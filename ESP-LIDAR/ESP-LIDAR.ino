@@ -20,7 +20,7 @@ const unsigned long WARNING_DURATION = 2000;
 String rgbData = "0;0;0";
 
 
-String encoderVal = "0";  // This will store the calibrated value
+String encoderVal = "0";
 
 ESP8266WebServer server(80);    // Create an instance of the WebServer on port 80 (default HTTP port)
 
@@ -39,17 +39,17 @@ void setup() {
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
     Serial.print(".");
-  } 
+  }
   Serial.println("\nIP address: " + WiFi.localIP().toString());
 
   // Root route with explicit authentication handling
-  server.on("/", HTTP_GET, []() { 
+  server.on("/", HTTP_GET, []() {
     // Always require authentication
     if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
       server.requestAuthentication(BASIC_AUTH, "Secure Area", "Authentication Required");
       return;
     }
-    
+
     // Serve the main page
     File file = SPIFFS.open("/index.html", "r");
     if (!file) {
@@ -61,7 +61,7 @@ void setup() {
   });
 
   // Static files with authentication
-  server.on("/style.css", HTTP_GET, []() { 
+  server.on("/style.css", HTTP_GET, []() {
     if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
       return server.requestAuthentication();
     }
@@ -70,7 +70,7 @@ void setup() {
     file.close();
   });
 
-  server.on("/script.js", HTTP_GET, []() { 
+  server.on("/script.js", HTTP_GET, []() {
     if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
       return server.requestAuthentication();
     }
@@ -79,7 +79,7 @@ void setup() {
     file.close();
   });
 
-  server.on("/favicon.ico", HTTP_GET, []() { 
+  server.on("/favicon.ico", HTTP_GET, []() {
     if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
       return server.requestAuthentication();
     }
@@ -107,89 +107,89 @@ void setup() {
   });
 
   // Movement routes with authentication
-  server.on("/forwards5", []() { 
+  server.on("/forwards5", []() {
     if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
       return server.requestAuthentication();
     }
-    handleMove(5); 
-  });      
-  
-  server.on("/forwards20", []() { 
+    handleMove(5);
+  });
+
+  server.on("/forwards20", []() {
     if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
       return server.requestAuthentication();
     }
-    handleMove(20); 
-  });    
-  
-  server.on("/backwards5", []() { 
+    handleMove(20);
+  });
+
+  server.on("/backwards5", []() {
     if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
       return server.requestAuthentication();
     }
-    handleMove(-5); 
-  });    
-  
-  server.on("/backwards20", []() { 
+    handleMove(-5);
+  });
+
+  server.on("/backwards20", []() {
     if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
       return server.requestAuthentication();
     }
-    handleMove(-20); 
-  }); 
-  server.on("/Drive50", []() { 
+    handleMove(-20);
+  });
+  server.on("/Drive50", []() {
     if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
       return server.requestAuthentication();
     }
-    handleMove(50); 
-  });   
-  server.on("/DriveGoal", []() { 
+    handleMove(50);
+  });
+  server.on("/DriveGoal", []() {
     if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
       return server.requestAuthentication();
     }
-    handleDriveGoal(); 
-  });   
+    handleDriveGoal();
+  });
 
   // Other routes with authentication
-  server.on("/compass", []() { 
+  server.on("/compass", []() {
     if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
       return server.requestAuthentication();
     }
-    handleCompass(); 
-  });                 
-  
-  server.on("/lidar", []() { 
-    if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
-      return server.requestAuthentication();
-    }
-    handleLidar(); 
-  });                     
-  
-  server.on("/compass_value", []() { 
-    if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
-      return server.requestAuthentication();
-    }
-    handleCompassValue(); 
-  }); 
-  
-  server.on("/warning", []() { 
-    if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
-      return server.requestAuthentication();
-    }
-    handleWarning(); 
+    handleCompass();
   });
-  
-  server.on("/rgb", []() { 
+
+  server.on("/lidar", []() {
     if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
       return server.requestAuthentication();
     }
-    handleRGB(); 
+    handleLidar();
   });
-  
-  server.on("/calibrateEncoder", []() { 
+
+  server.on("/compass_value", []() {
     if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
       return server.requestAuthentication();
     }
-    handleCalibrateEncoder(); 
+    handleCompassValue();
   });
-  
+
+  server.on("/warning", []() {
+    if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
+      return server.requestAuthentication();
+    }
+    handleWarning();
+  });
+
+  server.on("/rgb", []() {
+    if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
+      return server.requestAuthentication();
+    }
+    handleRGB();
+  });
+
+  server.on("/calibrateEncoder", []() {
+    if (!server.authenticate(HTTP_USERNAME, HTTP_PASSWORD)) {
+      return server.requestAuthentication();
+    }
+    handleCalibrateEncoder();
+  });
+
   // Handle not found requests
   server.onNotFound(handleNotFound);
 
@@ -285,4 +285,3 @@ void handleCalibrateEncoder() {
   Serial.println("CALIBRATE_ENCODER");
   server.send(200, "text/plain", encoderVal);
 }
-

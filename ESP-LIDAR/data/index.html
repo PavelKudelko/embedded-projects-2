@@ -25,20 +25,18 @@
 <button class="button" onclick="DriveGoal()">DRIVE TO THE GOAL</button>
 </div>
 
-<div id="compassValue">0°</div> <!-- This shows the current/last requested compass turning value -->
 <h1>Lidar Data</h1> <!-- Heading for the LIDAR data section -->
 <div id="lidarText">0 cm</div> <!-- Div element to display the LIDAR data, initially set to 0 cm -->
 <h1>Compass value</h1>
 <div id="compassDisplay">0°</div>
 <h1>RGB data</h1>
 <div id="rgbDisplay">0;0;0</div>
-<h1>Encoder data</h1>
-<div id="encoderDisplay">0</div>
-<!-- Color display window based on RGB value -->
-<button class="button" onclick="calibrateEncoder()">CALIBRATE ENCODER</button> 
 <div class="color-display-container">
   <div id="colorDisplay"></div>
   <div id="colorText">Detected: Black</div>
 </div>
+<h1>Encoder data</h1>
+<div id="encoderDisplay">0</div>
+<button class="button" onclick="calibrateEncoder()">CALIBRATE ENCODER</button>
 </body>
 </html>
