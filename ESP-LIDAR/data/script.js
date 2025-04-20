@@ -75,6 +75,7 @@ setInterval(fetchWarning, 300);
 setInterval(fetchRGB, 200);
 
 // Color display update function
+// Color display update function
 function updateColorDisplay(rgbString) {
     const rgbValues = rgbString.split(';');
     if (rgbValues.length === 3) {
@@ -84,25 +85,36 @@ function updateColorDisplay(rgbString) {
 
         const colorDisplay = document.getElementById('colorDisplay');
         const colorText = document.getElementById('colorText');
+        const rgbDisplay = document.getElementById('rgbDisplay');
 
-        let dominantColor = "Black";
-        let backgroundColor = "rgb(0, 0, 0)";
+        // Use the actual RGB values for the background color
+        const backgroundColor = `rgb(${r}, ${g}, ${b})`;
 
-        const max = Math.max(r, g, b);
+        // Determine color name based on RGB values
+        let colorName = "Unknown";
 
-        if (max === r) {
-            dominantColor = "Red";
-            backgroundColor = "rgb(255, 0, 0)";
-        } else if (max === g) {
-            dominantColor = "Green";
-            backgroundColor = "rgb(0, 255, 0)";
-        } else if (max === b) {
-            dominantColor = "Blue";
-            backgroundColor = "rgb(0, 0, 255)";
-        }
+        // Simple color detection thresholds
+        const threshold = 50;
+        const isRed = r > threshold && g < threshold && b < threshold;
+        const isGreen = g > threshold && r < threshold && b < threshold;
+        const isBlue = b > threshold && r < threshold && g < threshold;
+        const isYellow = r > threshold && g > threshold && b < threshold;
+        const isWhite = r > threshold && g > threshold && b > threshold;
+        const isBlack = r < threshold && g < threshold && b < threshold;
 
+        if (isRed) colorName = "Red";
+        else if (isGreen) colorName = "Green";
+        else if (isBlue) colorName = "Blue";
+        else if (isYellow) colorName = "Yellow";
+        else if (isWhite) colorName = "White";
+        else if (isBlack) colorName = "Black";
+
+        // Update the color display with actual RGB values
         colorDisplay.style.backgroundColor = backgroundColor;
-        colorText.innerText = "Detected: " + dominantColor;
+        colorText.innerText = `Detected: ${colorName}`;
+
+        // Format RGB values for display
+        rgbDisplay.innerText = `${r};${g};${b}`;
     }
 }
 
@@ -215,17 +227,15 @@ async function fetchCompassData() {
 async function fetchRGB() {
     try {
         const response = await fetchWithAuth('/rgb');
-        if (!response) return;
+        if (response) {
+            const data = await response.text();
 
-        const data = await response.text();
-        console.log("Raw RGB data:", data);
+            if (rgbDisplay) {
+                rgbDisplay.innerText = data;
+            }
 
-        if (rgbDisplay) {
-            rgbDisplay.innerText = data;
+            // Update color display with the new RGB values
             updateColorDisplay(data);
-
-            const values = data.split(';');
-            console.log("R:", values[0], "G:", values[1], "B:", values[2]);
         }
     } catch (error) {
         console.error('Error fetching RGB data:', error);
