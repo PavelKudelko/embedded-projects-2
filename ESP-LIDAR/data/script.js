@@ -73,6 +73,7 @@ setInterval(fetchLidarData, 500);
 setInterval(fetchCompassData, 500);
 setInterval(fetchWarning, 300);
 setInterval(fetchRGB, 200);
+setInterval(fetchEncoder, 200);
 
 // Color display update function
 function updateColorDisplay(rgbString) {
@@ -159,7 +160,7 @@ function backwards5() { move('backwards', 5); }
 function backwards20() { move('backwards', 20); }
 function Drive50() { DriveGoalDist(50); }
 function DriveGoal() { DriveGoal(); }
-function calibrateEncoder() { fetchWithAuth(`/calibrateEncoder`); }
+
 
 // General movement function
 function move(dir, dis) {
@@ -229,6 +230,24 @@ async function fetchRGB() {
         }
     } catch (error) {
         console.error('Error fetching RGB data:', error);
+    }
+}
+
+// Encoder calibration function
+async function calibrateEncoder() { 
+    try {
+        const response = await fetchWithAuth(`/calibrateEncoder`);
+        if (!response) return;
+
+        const data = await response.text();
+        console.log("Encoder calibration data:", data);
+
+        if (encoderDisplay) {
+            encoderDisplay.innerText = data;
+            console.log("Encoder calibration data:", data);
+        }
+    } catch (error) {
+        console.error('Error fetching encoder data:', error);
     }
 }
 
