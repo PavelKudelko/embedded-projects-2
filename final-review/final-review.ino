@@ -81,6 +81,7 @@ Dir currentDirection = NORTH;
 
 int consecutiveLeftCalls = 0;
 int consecutive180Calls = 0;
+int consecutiveRightCalls = 0;
 
 
 unsigned long lastTelemetryTime = 0;
